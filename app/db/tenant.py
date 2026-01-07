@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from slugify import slugify
@@ -11,7 +10,6 @@ from sqlalchemy import (
     Boolean,
     ColumnElement,
     Connection,
-    Enum,
     String,
     event,
     func,
@@ -31,7 +29,7 @@ class TenantDB(Base):
     uid: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
     )
-    name: Mapped[str] = mapped_column(Enum(StrEnum), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     disabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
     valid_from: Mapped[datetime] = mapped_column(DATE)

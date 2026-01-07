@@ -28,12 +28,8 @@ def validate_valid_to_date(value: datetime) -> datetime:
 
 
 NameFld = Annotated[str, Field(min_length=4, max_length=255, examples=["Dabbagh"])]
-ValidFromFld = Annotated[
-    datetime, Field(serialization_alias="validFrom"), AfterValidator(validate_valid_from_date)
-]
-ValidToFld = Annotated[
-    datetime, Field(serialization_alias="validTo"), AfterValidator(validate_valid_to_date)
-]
+ValidFromFld = Annotated[datetime, AfterValidator(validate_valid_from_date)]
+ValidToFld = Annotated[datetime, AfterValidator(validate_valid_to_date)]
 
 
 class TenantBase(BaseModel):
@@ -72,7 +68,7 @@ class TenantRead(TenantBase):
     created_at: datetime
     updated_at: datetime
 
-    is_active: bool
+    # is_active: bool
     users: set[_UserRead]
 
 
