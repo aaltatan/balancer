@@ -1,11 +1,8 @@
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Annotated, Self
+from typing import Annotated, Self
 
 from pydantic import AfterValidator, BaseModel, Field, model_validator
-
-if TYPE_CHECKING:
-    from .user import UserReadWithoutRelations
 
 
 def validate_valid_from_date(value: datetime) -> datetime:
@@ -53,7 +50,21 @@ class TenantBase(BaseModel):
         return self
 
 
-class TenantReadWithoutRelations(TenantBase):
+class _UserRead(BaseModel):
+    uid: uuid.UUID
+    fullname: str
+    is_active: bool
+    role: str
+
+    is_superuser: bool
+    is_tenant_superuser: bool
+    is_tenant_user: bool
+
+    created_at: datetime
+    updated_at: datetime
+
+
+class TenantRead(TenantBase):
     uid: uuid.UUID
     disabled: bool
     slug: str
@@ -62,10 +73,7 @@ class TenantReadWithoutRelations(TenantBase):
     updated_at: datetime
 
     is_active: bool
-
-
-class TenantRead(TenantReadWithoutRelations):
-    users: set["UserReadWithoutRelations"]
+    users: set[_UserRead]
 
 
 class TenantCreate(TenantBase):

@@ -1,7 +1,7 @@
 import re
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
@@ -9,9 +9,6 @@ from app.db.permission import Permission
 from app.db.user import Role
 
 from ._fields import PasswordFld
-
-if TYPE_CHECKING:
-    from .tenant import TenantReadWithoutRelations
 
 
 def validate_username(value: str) -> str:
@@ -61,8 +58,22 @@ class UserReadWithoutRelations(UserBase):
     updated_at: datetime
 
 
+class _TenantRead(BaseModel):
+    uid: uuid.UUID
+    name: str
+    valid_from: datetime
+    valid_to: datetime
+    disabled: bool
+    slug: str
+
+    created_at: datetime
+    updated_at: datetime
+
+    is_active: bool
+
+
 class UserReadWithTenant(UserReadWithoutRelations):
-    tenant: "TenantReadWithoutRelations"
+    tenant: _TenantRead
 
 
 class UserRead(UserReadWithTenant):
@@ -81,8 +92,3 @@ class UserUpdate(BaseModel):
 
 class ResetPassword(BaseModel):
     new_password: PasswordFld
-
-
-UserReadWithTenant.model_rebuild()
-UserRead.model_rebuild()
-PermissionRead.model_rebuild()
