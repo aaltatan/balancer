@@ -41,10 +41,6 @@ class PermissionRead(BaseModel):
     users: list["UserReadWithTenant"] = []
 
 
-class PermissionCreate(BaseModel):
-    name: Permission
-
-
 class UserBase(BaseModel):
     username: UsernameFld
     firstname: FirstnameFld
@@ -75,7 +71,7 @@ class UserRead(UserReadWithTenant):
 
 class UserCreate(UserBase):
     password: PasswordFld
-    permissions: set[PermissionCreate] = Field(default_factory=set)
+    permissions: set[Permission] = Field(default_factory=set)
 
 
 class UserUpdate(BaseModel):

@@ -1,7 +1,9 @@
+from datetime import datetime
+from typing import Any, Protocol
+
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
-from app.models.tenant import TenantCreate, TenantUpdate
 
 
 class TenantNotFoundError(Exception):
@@ -10,6 +12,22 @@ class TenantNotFoundError(Exception):
 
 class TenantAlreadyExistsError(Exception):
     pass
+
+
+class CreateSchema(Protocol):
+    name: str
+    valid_from: datetime
+    valid_to: datetime
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
+
+
+class UpdateSchema(Protocol):
+    name: str | None = None
+    valid_from: datetime | None = None
+    valid_to: datetime | None = None
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class TenantService:
@@ -37,7 +55,7 @@ class TenantService:
 
         return tenant
 
-    def create(self, tenant: TenantCreate) -> TenantDB:
+    def create(self, tenant: CreateSchema) -> TenantDB:
         tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.name == tenant.name).first()
 
         if tenant_db_exists:
@@ -52,10 +70,10 @@ class TenantService:
 
         return tenant_db
 
-    def update(self, slug: str, tenant: TenantUpdate) -> TenantDB:
+    def update(self, slug: str, tenant: UpdateSchema) -> TenantDB:
         tenant_db = self.get_by_slug(slug)
 
-        for key, value in tenant.model_dump().items():
+        for key, value in tenant.model_dump():
             if value is not None:
                 setattr(tenant_db, key, value)
 

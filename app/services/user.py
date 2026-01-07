@@ -1,9 +1,8 @@
+from typing import Any, Protocol
+
 from sqlalchemy.orm import Query, Session
 
-from app.db.permission import Permission, PermissionDB
-from app.db.tenant import TenantDB
-from app.db.user import Role, UserDB
-from app.models.user import ResetPassword, UserCreate, UserUpdate
+from app.db import Permission, PermissionDB, Role, TenantDB, UserDB
 from app.utils.hash import hash_password
 
 
@@ -17,6 +16,22 @@ class UserAlreadyExistsError(Exception):
 
 class TenantNotFoundError(Exception):
     pass
+
+
+class CreateSchema(Protocol):
+    username: str
+    firstname: str
+    lastname: str
+    permissions: set[Permission]
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
+
+
+class UpdateSchema(Protocol):
+    firstname: str | None = None
+    lastname: str | None = None
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class UserService:
@@ -51,7 +66,12 @@ class UserService:
         return user
 
     def _create(
-        self, user: UserCreate, role: Role = "tenant-user", tenant_slug: str | None = None
+        self,
+        user: CreateSchema,
+        password: str,
+        *,
+        role: Role = "tenant-user",
+        tenant_slug: str | None = None,
     ) -> UserDB:
         user_db_exists = self._db.query(UserDB).filter(UserDB.username == user.username).first()
 
@@ -59,25 +79,17 @@ class UserService:
             message = f"User with username '{user.username}' already exists."
             raise UserAlreadyExistsError(message)
 
-        model_dict = user.model_dump()
-
-        password = model_dict.pop("password")
-        hashed_password = hash_password(password.get_secret_value())
-
-        user_db_kwargs = {**model_dict, "role": role, "hashed_password": hashed_password}
+        user_db_kwargs = {
+            **user.model_dump(),
+            "role": role,
+            "hashed_password": hash_password(password),
+            "permissions": set(
+                self._db.query(PermissionDB).filter(PermissionDB.name.in_(user.permissions)).all()
+            ),
+        }
 
         if tenant_slug:
-            tenant = self._get_tenant(tenant_slug)
-            user_db_kwargs["tenant"] = tenant
-
-        if role in {"superuser", "tenant-superuser"}:
-            user_db_kwargs["permissions"] = set()
-        else:
-            permissions = model_dict.pop("permissions")
-            permissions_db = (
-                self._db.query(PermissionDB).filter(PermissionDB.name.in_(permissions)).all()
-            )
-            user_db_kwargs["permissions"] = set(permissions_db)
+            user_db_kwargs["tenant"] = self._get_tenant(tenant_slug)
 
         user_db = UserDB(**user_db_kwargs)
 
@@ -87,14 +99,18 @@ class UserService:
 
         return user_db
 
-    def create_superuser(self, user: UserCreate) -> UserDB:
-        return self._create(user, role="superuser")
+    def create_superuser(self, user: CreateSchema, password: str) -> UserDB:
+        return self._create(user, role="superuser", password=password)
 
-    def create_tenant_superuser(self, tenant_slug: str, user: UserCreate) -> UserDB:
-        return self._create(user, role="tenant-superuser", tenant_slug=tenant_slug)
+    def create_tenant_superuser(
+        self, tenant_slug: str, user: CreateSchema, password: str
+    ) -> UserDB:
+        return self._create(
+            user, role="tenant-superuser", tenant_slug=tenant_slug, password=password
+        )
 
-    def create_tenant_user(self, tenant_slug: str, user: UserCreate) -> UserDB:
-        return self._create(user, role="tenant-user", tenant_slug=tenant_slug)
+    def create_tenant_user(self, tenant_slug: str, user: CreateSchema, password: str) -> UserDB:
+        return self._create(user, password, tenant_slug=tenant_slug)
 
     def update_permissions(
         self, tenant_slug: str, username: str, permissions: set[Permission]
@@ -113,7 +129,7 @@ class UserService:
 
         return user_db
 
-    def update(self, tenant_slug: str, username: str, user: UserUpdate) -> UserDB:
+    def update(self, tenant_slug: str, username: str, user: UpdateSchema) -> UserDB:
         user_db = self.get_by_username(tenant_slug, username)
 
         for key, value in user.model_dump().items():
@@ -149,9 +165,9 @@ class UserService:
 
         return user_db
 
-    def reset_password(self, tenant_slug: str, username: str, schema: ResetPassword) -> UserDB:
+    def reset_password(self, tenant_slug: str, username: str, new_password: str) -> UserDB:
         user_db = self.get_by_username(tenant_slug, username)
-        user_db.hashed_password = hash_password(schema.new_password.get_secret_value())
+        user_db.hashed_password = hash_password(new_password)
         self._db.commit()
         self._db.refresh(user_db)
 

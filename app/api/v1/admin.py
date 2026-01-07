@@ -24,6 +24,6 @@ Service = Annotated[UserService, Depends(get_user_service)]
 )
 def create_tenant_superuser(service: Service, user: UserCreate, tenant_slug: str):
     try:
-        return service.create_tenant_superuser(tenant_slug, user)
+        return service.create_tenant_superuser(tenant_slug, user, user.password.get_secret_value())
     except (UserAlreadyExistsError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None

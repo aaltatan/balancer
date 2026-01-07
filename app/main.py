@@ -7,14 +7,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api import v1
 from app.core.config import get_config
 from app.core.middlewares import profiler_middleware
-from app.db import SessionLocal
-from app.init import init
+from app.db import SessionLocal, init_db
+from app.db.permission import init_permissions
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
     with SessionLocal() as session:
-        init(session)
+        init_db()
+        init_permissions(session)
 
     yield
 

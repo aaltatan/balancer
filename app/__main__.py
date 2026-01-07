@@ -10,11 +10,12 @@ def main() -> None:
 
     from app.cli.users import app as users_app
     from app.core.config import get_config
-    from app.db import SessionLocal
-    from app.init import init
+    from app.db import SessionLocal, init_db
+    from app.db.permission import init_permissions
 
     with SessionLocal() as session:
-        init(session)
+        init_db()
+        init_permissions(session)
 
     config = get_config()
 

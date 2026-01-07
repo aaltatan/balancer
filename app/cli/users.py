@@ -43,13 +43,13 @@ def get_console() -> Console:
 
 @app.command(name="createsuperuser")
 def create_superuser(
-    create_schema: UserCreate = Depends(get_create_user_schema),
-    user_service: UserService = Depends(get_user_service),
     console: Console = Depends(get_console),
+    service: UserService = Depends(get_user_service),
+    user: UserCreate = Depends(get_create_user_schema),
 ) -> None:
     try:
-        user = user_service.create_superuser(create_schema)
+        user_db = service.create_superuser(user, user.password.get_secret_value())
     except UserAlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
 
-    console.print(f"[bold green]Superuser '{user.username}' created successfully[/bold green]")
+    console.print(f"[bold green]Superuser '{user_db.username}' created successfully[/bold green]")

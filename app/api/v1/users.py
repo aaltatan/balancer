@@ -37,7 +37,7 @@ def get_users(service: Service, tenant_slug: str):
 )
 def create_tenant_user(service: Service, user: UserCreate, tenant_slug: str):
     try:
-        return service.create_tenant_user(tenant_slug, user)
+        return service.create_tenant_user(tenant_slug, user, user.password.get_secret_value())
     except (UserAlreadyExistsError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
@@ -95,7 +95,7 @@ def reset_password(
     service: Service, username: str, schema: Annotated[ResetPassword, Form()], tenant_slug: str
 ):
     try:
-        return service.reset_password(tenant_slug, username, schema)
+        return service.reset_password(tenant_slug, username, schema.new_password.get_secret_value())
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
