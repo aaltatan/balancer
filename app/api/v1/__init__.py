@@ -6,4 +6,4 @@ router = APIRouter()
 
 router.include_router(admin.router, prefix="/admin", tags=["admin"])
 router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
-router.include_router(users.router, prefix="/users", tags=["users"])
+router.include_router(users.router, prefix="/{tenant_slug}/users", tags=["users"])
