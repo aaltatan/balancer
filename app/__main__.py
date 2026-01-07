@@ -8,7 +8,7 @@ import typer
 def main() -> None:
     sys.path.append(str(Path(__file__).parent.parent))
 
-    from app.cli.users import app as users_app
+    from app.cli.users.cli import app as users_app
     from app.core.config import get_config
     from app.db import SessionLocal, init_db
     from app.db.permission import init_permissions

@@ -37,15 +37,15 @@ class UpdateSchema(Protocol):
 class UserService:
     def __init__(self, session: Session, tenant: TenantDB) -> None:
         self._db = session
-        self._tenant_db = tenant
+        self._tenant = tenant
 
     def get_all(self) -> list[UserDB]:
-        return self._db.query(UserDB).filter(UserDB.tenant == self._tenant_db).all()
+        return self._db.query(UserDB).filter(UserDB.tenant == self._tenant).all()
 
     def get_by_username(self, username: str) -> UserDB:
         user = (
             self._db.query(UserDB)
-            .filter(UserDB.tenant == self._tenant_db, UserDB.username == username)
+            .filter(UserDB.tenant == self._tenant, UserDB.username == username)
             .first()
         )
 
@@ -55,42 +55,32 @@ class UserService:
 
         return user
 
-    def _create(
-        self,
-        user: CreateSchema,
-        password: str,
-        *,
-        role: Role = "tenant-user",
-        include_tenant: bool = True,
-    ) -> UserDB:
-        user_db_exists = self._db.query(UserDB).filter(UserDB.username == user.username).first()
+    def _create(self, user: CreateSchema, password: str, *, role: Role = "tenant-user") -> UserDB:
+        user_db_exists = (
+            self._db.query(UserDB)
+            .filter(UserDB.username == user.username, UserDB.tenant == self._tenant)
+            .first()
+        )
 
         if user_db_exists:
             message = f"User with username '{user.username}' already exists."
             raise UserAlreadyExistsError(message)
 
-        user_db_kwargs = {
+        user_db = UserDB(
             **user.model_dump(),
-            "role": role,
-            "hashed_password": hash_password(password),
-            "permissions": set(
+            role=role,
+            hashed_password=hash_password(password),
+            permissions=set(
                 self._db.query(PermissionDB).filter(PermissionDB.name.in_(user.permissions)).all()
             ),
-        }
-
-        if include_tenant:
-            user_db_kwargs["tenant"] = self._tenant_db
-
-        user_db = UserDB(**user_db_kwargs)
+            tenant=self._tenant,
+        )
 
         self._db.add(user_db)
         self._db.commit()
         self._db.refresh(user_db)
 
         return user_db
-
-    def create_superuser(self, user: CreateSchema, password: str) -> UserDB:
-        return self._create(user, role="superuser", password=password)
 
     def create_tenant_superuser(self, user: CreateSchema, password: str) -> UserDB:
         return self._create(user, role="tenant-superuser", password=password)
@@ -164,7 +154,7 @@ class UserService:
 
     def _get_usernames(self, usernames: list[str]) -> Query[UserDB]:
         query = self._db.query(UserDB).filter(
-            UserDB.tenant == self._tenant_db, UserDB.username.in_(usernames)
+            UserDB.tenant == self._tenant, UserDB.username.in_(usernames)
         )
 
         if not query.all():

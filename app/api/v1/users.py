@@ -3,8 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.api.dependencies.tenant import get_current_tenant
 from app.db import TenantDB, get_db
-from app.dependencies.tenant import get_current_tenant
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
 from app.services.user import (
