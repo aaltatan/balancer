@@ -4,6 +4,7 @@ from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
 from app.services.user import (
     TenantNotFoundError,
@@ -22,27 +23,28 @@ def get_user_service(db: Annotated[Session, Depends(get_db)]) -> UserService:
 Service = Annotated[UserService, Depends(get_user_service)]
 
 
-@router.get("/{tenant_slug}/users", response_model=list[UserRead])
+@router.get("/{tenant_slug}/users", response_model=Response[list[UserRead]])
 def get_users(service: Service, tenant_slug: str):
     try:
-        return service.get_all(tenant_slug)
+        return Response(data=service.get_all(tenant_slug))
     except TenantNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.post(
     "/{tenant_slug}/tenant-user",
-    response_model=UserRead,
+    response_model=Response[UserRead],
     status_code=status.HTTP_201_CREATED,
 )
 def create_tenant_user(service: Service, user: UserCreate, tenant_slug: str):
     try:
-        return service.create_tenant_user(tenant_slug, user, user.password.get_secret_value())
+        data = service.create_tenant_user(tenant_slug, user, user.password.get_secret_value())
+        return Response(data=data)
     except (UserAlreadyExistsError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
 
-@router.get("/{tenant_slug}/users/{username}", response_model=UserRead)
+@router.get("/{tenant_slug}/users/{username}", response_model=Response[UserRead])
 def get_user(service: Service, username: str, tenant_slug: str):
     try:
         return service.get_by_username(tenant_slug, username)
@@ -52,50 +54,54 @@ def get_user(service: Service, username: str, tenant_slug: str):
 
 @router.put(
     "/{tenant_slug}/{username}",
-    response_model=UserRead,
+    response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
 )
 def update_user(service: Service, username: str, user: UserUpdate, tenant_slug: str):
     try:
-        return service.update(tenant_slug, username, user)
+        data = service.update(tenant_slug, username, user)
+        return Response(data=data)
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
     "/{tenant_slug}/{username}/activate",
-    response_model=UserRead,
+    response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
 )
 def activate_user(service: Service, username: str, tenant_slug: str):
     try:
-        return service.activate(tenant_slug, username)
+        data = service.activate(tenant_slug, username)
+        return Response(data=data)
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
     "/{tenant_slug}/{username}/deactivate",
-    response_model=UserRead,
+    response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
 )
 def deactivate_user(service: Service, username: str, tenant_slug: str):
     try:
-        return service.deactivate(tenant_slug, username)
+        data = service.deactivate(tenant_slug, username)
+        return Response(data=data)
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
     "/{tenant_slug}/{username}/reset-password",
-    response_model=UserRead,
+    response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
 )
 def reset_password(
     service: Service, username: str, schema: Annotated[ResetPassword, Form()], tenant_slug: str
 ):
     try:
-        return service.reset_password(tenant_slug, username, schema.new_password.get_secret_value())
+        data = service.reset_password(tenant_slug, username, schema.new_password.get_secret_value())
+        return Response(data=data)
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -110,28 +116,30 @@ def delete_user(service: Service, username: str, tenant_slug: str):
 
 @router.patch(
     "/{tenant_slug}/bulk/activate",
-    response_model=list[UserRead],
+    response_model=Response[list[UserRead]],
     status_code=status.HTTP_202_ACCEPTED,
 )
 def bulk_activate_users(
     service: Service, usernames: Annotated[list[str], Body()], tenant_slug: str
 ):
     try:
-        return service.bulk_activate(tenant_slug, usernames)
+        data = service.bulk_activate(tenant_slug, usernames)
+        return Response(data=data)
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
     "/{tenant_slug}/bulk/deactivate",
-    response_model=list[UserRead],
+    response_model=Response[list[UserRead]],
     status_code=status.HTTP_202_ACCEPTED,
 )
 def bulk_deactivate_users(
     service: Service, usernames: Annotated[list[str], Body()], tenant_slug: str
 ):
     try:
-        return service.bulk_deactivate(tenant_slug, usernames)
+        data = service.bulk_deactivate(tenant_slug, usernames)
+        return Response(data=data)
     except (UserNotFoundError, TenantNotFoundError) as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
