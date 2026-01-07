@@ -24,5 +24,5 @@ def validate_password(v: SecretStr) -> SecretStr:
 
 
 PasswordFld = Annotated[
-    SecretStr, Field(min_length=8, max_length=255), AfterValidator(validate_password)
+    SecretStr, Field(min_length=8, max_length=255, exclude=True), AfterValidator(validate_password)
 ]
