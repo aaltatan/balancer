@@ -35,27 +35,17 @@ class UpdateSchema(Protocol):
 
 
 class UserService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, tenant: TenantDB) -> None:
         self._db = session
+        self._tenant_db = tenant
 
-    def _get_tenant(self, slug: str) -> TenantDB:
-        tenant = self._db.query(TenantDB).filter(TenantDB.slug == slug).first()
+    def get_all(self) -> list[UserDB]:
+        return self._db.query(UserDB).filter(UserDB.tenant == self._tenant_db).all()
 
-        if not tenant:
-            message = f"Tenant with slug '{slug}' not found."
-            raise TenantNotFoundError(message)
-
-        return tenant
-
-    def get_all(self, tenant_slug: str) -> list[UserDB]:
-        tenant = self._get_tenant(tenant_slug)
-        return self._db.query(UserDB).filter(UserDB.tenant == tenant).all()
-
-    def get_by_username(self, tenant_slug: str, username: str) -> UserDB:
-        tenant = self._get_tenant(tenant_slug)
+    def get_by_username(self, username: str) -> UserDB:
         user = (
             self._db.query(UserDB)
-            .filter(UserDB.tenant == tenant, UserDB.username == username)
+            .filter(UserDB.tenant == self._tenant_db, UserDB.username == username)
             .first()
         )
 
@@ -71,7 +61,7 @@ class UserService:
         password: str,
         *,
         role: Role = "tenant-user",
-        tenant_slug: str | None = None,
+        include_tenant: bool = True,
     ) -> UserDB:
         user_db_exists = self._db.query(UserDB).filter(UserDB.username == user.username).first()
 
@@ -88,8 +78,8 @@ class UserService:
             ),
         }
 
-        if tenant_slug:
-            user_db_kwargs["tenant"] = self._get_tenant(tenant_slug)
+        if include_tenant:
+            user_db_kwargs["tenant"] = self._tenant_db
 
         user_db = UserDB(**user_db_kwargs)
 
@@ -102,20 +92,14 @@ class UserService:
     def create_superuser(self, user: CreateSchema, password: str) -> UserDB:
         return self._create(user, role="superuser", password=password)
 
-    def create_tenant_superuser(
-        self, tenant_slug: str, user: CreateSchema, password: str
-    ) -> UserDB:
-        return self._create(
-            user, role="tenant-superuser", tenant_slug=tenant_slug, password=password
-        )
+    def create_tenant_superuser(self, user: CreateSchema, password: str) -> UserDB:
+        return self._create(user, role="tenant-superuser", password=password)
 
-    def create_tenant_user(self, tenant_slug: str, user: CreateSchema, password: str) -> UserDB:
-        return self._create(user, password, tenant_slug=tenant_slug)
+    def create_tenant_user(self, user: CreateSchema, password: str) -> UserDB:
+        return self._create(user, password)
 
-    def update_permissions(
-        self, tenant_slug: str, username: str, permissions: set[Permission]
-    ) -> UserDB:
-        user_db = self.get_by_username(tenant_slug, username)
+    def update_permissions(self, username: str, permissions: set[Permission]) -> UserDB:
+        user_db = self.get_by_username(username)
 
         permissions_db = (
             self._db.query(PermissionDB).filter(PermissionDB.name.in_(permissions)).all()
@@ -129,8 +113,8 @@ class UserService:
 
         return user_db
 
-    def update(self, tenant_slug: str, username: str, user: UpdateSchema) -> UserDB:
-        user_db = self.get_by_username(tenant_slug, username)
+    def update(self, username: str, user: UpdateSchema) -> UserDB:
+        user_db = self.get_by_username(username)
 
         for key, value in user.model_dump().items():
             if value is not None:
@@ -141,8 +125,8 @@ class UserService:
 
         return user_db
 
-    def activate(self, tenant_slug: str, username: str) -> UserDB:
-        user_db = self.get_by_username(tenant_slug, username)
+    def activate(self, username: str) -> UserDB:
+        user_db = self.get_by_username(username)
 
         if user_db.is_active:
             return user_db
@@ -153,8 +137,8 @@ class UserService:
 
         return user_db
 
-    def deactivate(self, tenant_slug: str, username: str) -> UserDB:
-        user_db = self.get_by_username(tenant_slug, username)
+    def deactivate(self, username: str) -> UserDB:
+        user_db = self.get_by_username(username)
 
         if not user_db.is_active:
             return user_db
@@ -165,22 +149,22 @@ class UserService:
 
         return user_db
 
-    def reset_password(self, tenant_slug: str, username: str, new_password: str) -> UserDB:
-        user_db = self.get_by_username(tenant_slug, username)
+    def reset_password(self, username: str, new_password: str) -> UserDB:
+        user_db = self.get_by_username(username)
         user_db.hashed_password = hash_password(new_password)
         self._db.commit()
         self._db.refresh(user_db)
 
         return user_db
 
-    def delete(self, tenant_slug: str, username: str) -> None:
-        user_db = self.get_by_username(tenant_slug, username)
+    def delete(self, username: str) -> None:
+        user_db = self.get_by_username(username)
         self._db.delete(user_db)
         self._db.commit()
 
-    def _get_usernames(self, tenant_slug: str, usernames: list[str]) -> Query[UserDB]:
+    def _get_usernames(self, usernames: list[str]) -> Query[UserDB]:
         query = self._db.query(UserDB).filter(
-            UserDB.tenant.slug == tenant_slug, UserDB.username.in_(usernames)
+            UserDB.tenant == self._tenant_db, UserDB.username.in_(usernames)
         )
 
         if not query.all():
@@ -189,24 +173,24 @@ class UserService:
 
         return query
 
-    def bulk_activate(self, tenant_slug: str, usernames: list[str]) -> list[UserDB]:
-        query = self._get_usernames(tenant_slug, usernames)
+    def bulk_activate(self, usernames: list[str]) -> list[UserDB]:
+        query = self._get_usernames(usernames)
         query.update({"is_active": True})
         self._db.commit()
         self._db.refresh(query)
 
         return query.all()
 
-    def bulk_deactivate(self, tenant_slug: str, usernames: list[str]) -> list[UserDB]:
-        query = self._get_usernames(tenant_slug, usernames)
+    def bulk_deactivate(self, usernames: list[str]) -> list[UserDB]:
+        query = self._get_usernames(usernames)
         query.update({"is_active": False})
         self._db.commit()
         self._db.refresh(query)
 
         return query.all()
 
-    def bulk_delete(self, tenant_slug: str, usernames: list[str]) -> None:
-        query = self._get_usernames(tenant_slug, usernames)
+    def bulk_delete(self, usernames: list[str]) -> None:
+        query = self._get_usernames(usernames)
         self._db.delete(query)
         self._db.commit()
 
