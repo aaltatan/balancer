@@ -14,10 +14,6 @@ class UserAlreadyExistsError(Exception):
     pass
 
 
-class TenantNotFoundError(Exception):
-    pass
-
-
 class CreateSchema(Protocol):
     username: str
     firstname: str
