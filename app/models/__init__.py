@@ -1,3 +1,3 @@
-from ._wrapper import Wrapper
+from ._response_wrapper import Response
 
-__all__ = ["Wrapper"]
+__all__ = ["Response"]

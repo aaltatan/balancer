@@ -75,7 +75,6 @@ class UserRead(UserReadWithTenant):
 
 class UserCreate(UserBase):
     password: PasswordFld
-    tenant_id: uuid.UUID | None = None
     permissions: set[PermissionCreate] = Field(default_factory=set)
 
 
@@ -86,3 +85,8 @@ class UserUpdate(BaseModel):
 
 class ResetPassword(BaseModel):
     new_password: PasswordFld
+
+
+UserReadWithTenant.model_rebuild()
+UserRead.model_rebuild()
+PermissionRead.model_rebuild()

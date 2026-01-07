@@ -37,7 +37,7 @@ class TenantDB(Base):
     valid_from: Mapped[datetime] = mapped_column(DATE)
     valid_to: Mapped[datetime] = mapped_column(DATE)
 
-    slug: Mapped[str] = mapped_column(String(255), unique=True)
+    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
 
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, onupdate=func.now(), default=func.now())

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class Wrapper[T](BaseModel):
+class Response[T](BaseModel):
     data: T
