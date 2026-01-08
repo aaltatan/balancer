@@ -40,3 +40,8 @@ if config.debug:
     app.add_middleware(BaseHTTPMiddleware, dispatch=profiler_middleware)
 
 app.include_router(v1.router)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}

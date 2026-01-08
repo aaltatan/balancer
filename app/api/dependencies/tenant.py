@@ -15,8 +15,8 @@ def get_current_tenant(
         message = f"Tenant with slug '{tenant_slug}' not found."
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message)
 
-    if tenant.disabled:
+    if not tenant.is_active:
         message = f"Tenant with slug '{tenant_slug}' is disabled."
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=message)
 
     return tenant

@@ -45,13 +45,15 @@ class TenantDB(Base):
     @hybrid_property
     def is_active(self) -> bool:
         return (
-            self.valid_from <= datetime.now(tz=timezone.utc) <= self.valid_to
+            self.valid_from <= datetime.now(tz=timezone.utc).date() <= self.valid_to
         ) or not self.disabled
 
-    @is_active.expression
+    @is_active.inplace.expression
     @classmethod
     def _is_active(cls) -> ColumnElement[bool]:
-        return (cls.valid_from <= func.now(timezone=True) <= cls.valid_to) or cls.disabled != True  # noqa: E712
+        now = func.current_date()
+        date_valid = (cls.valid_from <= now) & (now <= cls.valid_to)
+        return date_valid & (~cls.disabled)
 
     def __repr__(self) -> str:
         return f"<TenantDB(name={self.name})>"
@@ -63,4 +65,4 @@ def set_tenant_slugify(mapper: Mapper, connection: Connection, target: TenantDB)
 
 
 event.listen(TenantDB, "before_insert", set_tenant_slugify)
-event.listen(TenantDB, "before_insert", set_tenant_slugify)
+event.listen(TenantDB, "before_update", set_tenant_slugify)

@@ -73,7 +73,7 @@ class TenantService:
     def update(self, slug: str, tenant: UpdateSchema) -> TenantDB:
         tenant_db = self.get_by_slug(slug)
 
-        for key, value in tenant.model_dump():
+        for key, value in tenant.model_dump().items():
             if value is not None:
                 setattr(tenant_db, key, value)
 
