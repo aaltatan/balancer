@@ -26,16 +26,27 @@ def title_string(value: str) -> str:
     return value.strip().title()
 
 
-UsernameFld = Annotated[str, Field(min_length=4, max_length=255), AfterValidator(validate_username)]
-FirstnameFld = Annotated[str, Field(min_length=4, max_length=255), BeforeValidator(title_string)]
-LastnameFld = Annotated[str, Field(min_length=4, max_length=255), BeforeValidator(title_string)]
+UsernameFld = Annotated[
+    str,
+    Field(min_length=4, max_length=255, examples=["abdullah_altatan"]),
+    AfterValidator(validate_username),
+]
+
+FirstnameFld = Annotated[
+    str,
+    Field(min_length=4, max_length=255, examples=["Abdullah"]),
+    BeforeValidator(title_string),
+]
+
+LastnameFld = Annotated[
+    str,
+    Field(min_length=4, max_length=255, examples=["Altatan"]),
+    BeforeValidator(title_string),
+]
 
 
 class PermissionRead(BaseModel):
-    uid: uuid.UUID
     name: Permission
-
-    users: list["UserReadWithTenant"] = []
 
 
 class UserBase(BaseModel):
@@ -77,12 +88,16 @@ class UserReadWithTenant(UserReadWithoutRelations):
 
 
 class UserRead(UserReadWithTenant):
-    permissions: set[PermissionRead]
+    permissions: list[PermissionRead] = Field(default_factory=list)
 
 
 class UserCreate(UserBase):
     password: PasswordFld
-    permissions: set[Permission] = Field(default_factory=set)
+    permissions: set[Permission] = Field(
+        default_factory=set,
+        exclude=True,
+        examples=[[Permission.USERS_READ, Permission.USERS_CREATE]],
+    )
 
 
 class UserUpdate(BaseModel):

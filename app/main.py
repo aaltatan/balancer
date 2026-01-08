@@ -39,7 +39,7 @@ app.add_middleware(
 if config.debug:
     app.add_middleware(BaseHTTPMiddleware, dispatch=profiler_middleware)
 
-app.include_router(v1.router)
+app.include_router(v1.router, prefix="/api/v1")
 
 
 @app.get("/health")

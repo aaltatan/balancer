@@ -1,35 +1,12 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Annotated, Self
 
-from pydantic import AfterValidator, BaseModel, Field, model_validator
-
-
-def validate_valid_from_date(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-
-    if value < datetime.now(tz=timezone.utc):
-        message = "Valid from date must be in the future."
-        raise ValueError(message)
-
-    return value
-
-
-def validate_valid_to_date(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-
-    if value < datetime.now(tz=timezone.utc):
-        message = "Valid to date must be in the future."
-        raise ValueError(message)
-
-    return value
-
+from pydantic import BaseModel, Field, model_validator
 
 NameFld = Annotated[str, Field(min_length=4, max_length=255, examples=["Dabbagh"])]
-ValidFromFld = Annotated[datetime, AfterValidator(validate_valid_from_date)]
-ValidToFld = Annotated[datetime, AfterValidator(validate_valid_to_date)]
+ValidFromFld = Annotated[datetime, Field(examples=["2023-01-01"])]
+ValidToFld = Annotated[datetime, Field(examples=["2023-01-31"])]
 
 
 class TenantBase(BaseModel):
@@ -68,8 +45,8 @@ class TenantRead(TenantBase):
     created_at: datetime
     updated_at: datetime
 
-    # is_active: bool
-    users: set[_UserRead]
+    is_active: bool
+    users: list[_UserRead]
 
 
 class TenantCreate(TenantBase):

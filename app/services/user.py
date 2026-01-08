@@ -18,7 +18,7 @@ class CreateSchema(Protocol):
     username: str
     firstname: str
     lastname: str
-    permissions: set[Permission]
+    permissions: set
 
     def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 

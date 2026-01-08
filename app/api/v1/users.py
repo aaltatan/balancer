@@ -39,7 +39,7 @@ def create_tenant_user(service: Service, user: UserCreate):
 @router.get("/{username}", response_model=Response[UserRead])
 def get_user(service: Service, username: str):
     try:
-        return service.get_by_username(username)
+        return Response(data=service.get_by_username(username))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -47,8 +47,7 @@ def get_user(service: Service, username: str):
 @router.put("/{username}", response_model=Response[UserRead], status_code=status.HTTP_202_ACCEPTED)
 def update_user(service: Service, username: str, user: UserUpdate):
     try:
-        data = service.update(username, user)
-        return Response(data=data)
+        return Response(data=service.update(username, user))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -58,8 +57,7 @@ def update_user(service: Service, username: str, user: UserUpdate):
 )
 def activate_user(service: Service, username: str):
     try:
-        data = service.activate(username)
-        return Response(data=data)
+        return Response(data=service.activate(username))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -71,8 +69,7 @@ def activate_user(service: Service, username: str):
 )
 def deactivate_user(service: Service, username: str):
     try:
-        data = service.deactivate(username)
-        return Response(data=data)
+        return Response(data=service.deactivate(username))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -103,8 +100,7 @@ def delete_user(service: Service, username: str):
 )
 def bulk_activate_users(service: Service, usernames: Annotated[list[str], Body()]):
     try:
-        data = service.bulk_activate(usernames)
-        return Response(data=data)
+        return Response(data=service.bulk_activate(usernames))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -116,8 +112,7 @@ def bulk_activate_users(service: Service, usernames: Annotated[list[str], Body()
 )
 def bulk_deactivate_users(service: Service, usernames: Annotated[list[str], Body()]):
     try:
-        data = service.bulk_deactivate(usernames)
-        return Response(data=data)
+        return Response(data=service.bulk_deactivate(usernames))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
