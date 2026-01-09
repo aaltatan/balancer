@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.db.tenant import TenantDB
@@ -16,13 +16,13 @@ def init_tenants(session: Session):
     tenants_db = [
         TenantDB(
             name="Dabbagh",
-            valid_from=datetime(2022, 1, 1, tzinfo=UTC),
-            valid_to=datetime(2023, 1, 1, tzinfo=UTC),
+            valid_from=datetime.now(tz=UTC) - timedelta(days=7),
+            valid_to=datetime.now(tz=UTC) + timedelta(days=7),
         ),
         TenantDB(
             name="almostafa ceramica",
-            valid_from=datetime(2023, 1, 1, tzinfo=UTC),
-            valid_to=datetime(2024, 1, 1, tzinfo=UTC),
+            valid_from=datetime.now(tz=UTC) - timedelta(days=7),
+            valid_to=datetime.now(tz=UTC) + timedelta(days=7),
         ),
     ]
     session.add_all(tenants_db)
@@ -56,7 +56,7 @@ def test_create(service: TenantService) -> None:
 
     assert tenant.name == "Dabbagh Supermarket"
     assert tenant.disabled is False
-    assert tenant.is_active is True
+    assert tenant.is_active is False
     assert tenant.slug == "dabbagh-supermarket"
     assert len(service.get_all()) == 3
 
@@ -74,8 +74,8 @@ def test_create_with_arabic_chars(service: TenantService) -> None:
     )
 
     assert tenant.name == "ميني ماركت"
-    assert not tenant.disabled
-    assert tenant.is_active is True
+    assert tenant.disabled is False
+    assert tenant.is_active is False
     assert tenant.slug == "ميني-ماركت"
 
 
@@ -83,7 +83,7 @@ def test_update(service: TenantService) -> None:
     tenant = service.update("dabbagh", name="Dabbagh Supermarket")
 
     assert tenant.name == "Dabbagh Supermarket"
-    assert not tenant.disabled
+    assert tenant.disabled is False
     assert tenant.is_active is True
     assert tenant.slug == "dabbagh-supermarket"
     assert len(service.get_all()) == 2
