@@ -13,7 +13,7 @@ from app.services.generic_user import (
     UserAlreadyExistsError,
     UserNotFoundError,
 )
-from app.services.superuser import TenantSuperuserService
+from app.services.tenant_superuser import TenantSuperuserService
 
 router = APIRouter()
 
