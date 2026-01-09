@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
-from . import admin, tenants, users
+from . import superuser, tenants, users
 
 router = APIRouter()
 
-router.include_router(admin.router, prefix="/{tenant_slug}/admin", tags=["admin"])
+router.include_router(superuser.router, prefix="/{tenant_slug}/superusers", tags=["superusers"])
 router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])
 router.include_router(users.router, prefix="/{tenant_slug}/users", tags=["users"])

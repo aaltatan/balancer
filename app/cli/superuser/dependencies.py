@@ -9,23 +9,30 @@ from sqlalchemy.orm import Session
 from typer_di import Depends
 
 from app.db import get_db
-from app.models.user import UserCreate
-from app.services.admin import AdminService
+from app.models.user import ResetPassword, UserCreate
+from app.services.superuser import SuperuserService
 
 from .inputs import FirstnameOpt, LastnameOpt, PasswordOpt, UsernameOpt
 
 
-def get_admin_service(db: Generator[Session, Any, None] = Depends(get_db)) -> AdminService:
-    return AdminService(next(db))
+def get_superuser_service(db: Generator[Session, Any, None] = Depends(get_db)) -> SuperuserService:
+    return SuperuserService(next(db))
 
 
-def get_create_superuser_schema(
+def get_create_schema(
     username: UsernameOpt, firstname: FirstnameOpt, lastname: LastnameOpt, password: PasswordOpt
 ) -> UserCreate:
     try:
         return UserCreate(
             username=username, firstname=firstname, lastname=lastname, password=SecretStr(password)
         )
+    except ValidationError as e:
+        raise typer.BadParameter(str(e)) from e
+
+
+def get_reset_password_schema(new_password: PasswordOpt) -> ResetPassword:
+    try:
+        return ResetPassword(new_password=SecretStr(new_password))
     except ValidationError as e:
         raise typer.BadParameter(str(e)) from e
 

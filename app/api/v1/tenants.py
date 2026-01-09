@@ -19,12 +19,12 @@ router = APIRouter()
 
 
 @router.get("/", response_model=Response[list[TenantRead]])
-def get_tenants(service: Service):
+def get_all(service: Service):
     return Response(data=service.get_all())
 
 
 @router.post("/", response_model=Response[TenantRead], status_code=status.HTTP_201_CREATED)
-def create_tenant(service: Service, tenant: TenantCreate):
+def create(service: Service, tenant: TenantCreate):
     try:
         return Response(data=service.create(tenant.name, tenant.valid_from, tenant.valid_to))
     except TenantAlreadyExistsError as e:
@@ -32,7 +32,7 @@ def create_tenant(service: Service, tenant: TenantCreate):
 
 
 @router.get("/{slug}", response_model=Response[TenantRead])
-def get_tenant(service: Service, slug: str):
+def get_by_slug(service: Service, slug: str):
     try:
         return Response(data=service.get_by_slug(slug))
     except TenantNotFoundError as e:
@@ -40,7 +40,7 @@ def get_tenant(service: Service, slug: str):
 
 
 @router.put("/{slug}", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED)
-def update_tenant(service: Service, slug: str, tenant: TenantUpdate):
+def update(service: Service, slug: str, tenant: TenantUpdate):
     try:
         return Response(data=service.update(slug, tenant.name, tenant.valid_from, tenant.valid_to))
     except TenantNotFoundError as e:
@@ -50,7 +50,7 @@ def update_tenant(service: Service, slug: str, tenant: TenantUpdate):
 @router.patch(
     "/{slug}/activate", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED
 )
-def activate_tenant(service: Service, slug: str):
+def activate(service: Service, slug: str):
     try:
         return Response(data=service.activate(slug))
     except TenantNotFoundError as e:
@@ -60,7 +60,7 @@ def activate_tenant(service: Service, slug: str):
 @router.patch(
     "/{slug}/deactivate", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED
 )
-def deactivate_tenant(service: Service, slug: str):
+def deactivate(service: Service, slug: str):
     try:
         return Response(data=service.deactivate(slug))
     except TenantNotFoundError as e:
@@ -68,7 +68,7 @@ def deactivate_tenant(service: Service, slug: str):
 
 
 @router.delete("/{slug}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tenant(service: Service, slug: str):
+def delete(service: Service, slug: str):
     try:
         service.delete(slug)
     except TenantNotFoundError as e:
