@@ -9,11 +9,18 @@ from sqlalchemy.orm import Session
 from typer_di import Depends
 
 from app.db import get_db
-from app.models.user import ResetPassword, UserCreate
+from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
 
-from .inputs import FirstnameOpt, LastnameOpt, PasswordOpt, UsernameOpt
+from .inputs import (
+    FirstnameOpt,
+    LastnameOpt,
+    OptionalFirstnameOpt,
+    OptionalLastnameOpt,
+    PasswordOpt,
+    UsernameOpt,
+)
 
 
 def get_superuser_service(db: Generator[Session, Any, None] = Depends(get_db)) -> SuperuserService:
@@ -28,6 +35,15 @@ def get_create_schema(
         return UserCreate(
             username=username, firstname=firstname, lastname=lastname, password=SecretStr(password)
         )
+    except ValidationError as e:
+        raise typer.BadParameter(str(e)) from e
+
+
+def get_user_update_schema(
+    firstname: OptionalFirstnameOpt = None, lastname: OptionalLastnameOpt = None
+) -> UserUpdate:
+    try:
+        return UserUpdate(firstname=firstname, lastname=lastname)
     except ValidationError as e:
         raise typer.BadParameter(str(e)) from e
 
