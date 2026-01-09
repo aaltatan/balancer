@@ -10,13 +10,15 @@ from typer_di import Depends
 
 from app.db import get_db
 from app.models.user import ResetPassword, UserCreate
+from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
 
 from .inputs import FirstnameOpt, LastnameOpt, PasswordOpt, UsernameOpt
 
 
 def get_superuser_service(db: Generator[Session, Any, None] = Depends(get_db)) -> SuperuserService:
-    return SuperuserService(next(db))
+    session = next(db)
+    return SuperuserService(session, GenericUserService(session))
 
 
 def get_create_schema(

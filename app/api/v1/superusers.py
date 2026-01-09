@@ -1,11 +1,10 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.tenant import get_current_tenant
+from app.api.dependencies.auth import get_superuser
 from app.db import get_db
-from app.db.tenant import TenantDB
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
 from app.services.generic_user import (
@@ -19,33 +18,51 @@ from app.services.superuser import TenantSuperuserService
 router = APIRouter()
 
 
-def get_tenant_superuser_service(
-    db: Annotated[Session, Depends(get_db)],
-    tenant: Annotated[TenantDB, Depends(get_current_tenant)],
-) -> TenantSuperuserService:
-    return TenantSuperuserService(db, GenericUserService(db), tenant)
+def get_tenant_superuser_service(db: Annotated[Session, Depends(get_db)]) -> TenantSuperuserService:
+    return TenantSuperuserService(db, GenericUserService(db))
 
 
 _TenantSuperuserService = Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)]
 
 
-@router.get("/", response_model=Response[list[UserRead]])
+@router.get(
+    "/",
+    response_model=Response[list[UserRead]],
+    dependencies=[Depends(get_superuser)],
+)
 def get_all(service: _TenantSuperuserService):
     return Response(data=service.get_all())
 
 
-@router.post("/", response_model=Response[UserRead], status_code=status.HTTP_201_CREATED)
-def create(service: _TenantSuperuserService, user: UserCreate):
+@router.post(
+    "/{tenant_slug}",
+    response_model=Response[UserRead],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_superuser)],
+)
+def create(
+    service: _TenantSuperuserService,
+    user: Annotated[UserCreate, Body()],
+    tenant_slug: Annotated[str, Path()],
+):
     try:
         data = service.create(
-            user.username, user.firstname, user.lastname, user.password.get_secret_value()
+            user.username,
+            user.firstname,
+            user.lastname,
+            user.password.get_secret_value(),
+            tenant_slug,
         )
         return Response(data=data)
     except (UserAlreadyExistsError, MoreThanOneSuperuserError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
 
-@router.get("/{username}", response_model=Response[UserRead])
+@router.get(
+    "/{username}",
+    response_model=Response[UserRead],
+    dependencies=[Depends(get_superuser)],
+)
 def get_by_username(service: _TenantSuperuserService, username: str):
     try:
         return Response(data=service.get_by_username(username))
@@ -53,7 +70,12 @@ def get_by_username(service: _TenantSuperuserService, username: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.put("/{username}", response_model=Response[UserRead], status_code=status.HTTP_202_ACCEPTED)
+@router.put(
+    "/{username}",
+    response_model=Response[UserRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_superuser)],
+)
 def update(service: _TenantSuperuserService, username: str, user: UserUpdate):
     try:
         return Response(data=service.update(username, user.firstname, user.lastname))
@@ -62,7 +84,10 @@ def update(service: _TenantSuperuserService, username: str, user: UserUpdate):
 
 
 @router.patch(
-    "/{username}/activate", response_model=Response[UserRead], status_code=status.HTTP_202_ACCEPTED
+    "/{username}/activate",
+    response_model=Response[UserRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_superuser)],
 )
 def activate(service: _TenantSuperuserService, username: str):
     try:
@@ -75,6 +100,7 @@ def activate(service: _TenantSuperuserService, username: str):
     "/{username}/deactivate",
     response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_superuser)],
 )
 def deactivate(service: _TenantSuperuserService, username: str):
     try:
@@ -87,6 +113,7 @@ def deactivate(service: _TenantSuperuserService, username: str):
     "/{username}/reset-password",
     response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_superuser)],
 )
 def reset_password(service: _TenantSuperuserService, username: str, schema: ResetPassword):
     try:
@@ -96,7 +123,11 @@ def reset_password(service: _TenantSuperuserService, username: str, schema: Rese
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{username}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_superuser)],
+)
 def delete(service: _TenantSuperuserService, username: str):
     try:
         service.delete(username)

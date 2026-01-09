@@ -84,7 +84,7 @@ class _TenantRead(BaseModel):
 
 
 class UserReadWithTenant(UserReadWithoutRelations):
-    tenant: _TenantRead
+    tenant: _TenantRead | None = None
 
 
 class UserRead(UserReadWithTenant):
@@ -93,11 +93,10 @@ class UserRead(UserReadWithTenant):
 
 class UserCreate(UserBase):
     password: PasswordFld
-    permissions: set[Permission] = Field(
-        default_factory=set,
-        exclude=True,
-        examples=[[Permission.USERS_READ, Permission.USERS_CREATE]],
-    )
+    permissions: Annotated[
+        set[Permission],
+        Field(exclude=True, examples=[[Permission.USERS_READ, Permission.USERS_CREATE]]),
+    ] = set()
 
 
 class UserUpdate(BaseModel):

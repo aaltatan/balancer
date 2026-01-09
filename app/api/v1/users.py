@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.tenant import get_current_tenant
+from app.api.dependencies.auth import get_active_tenant, get_tenant_superuser
 from app.db import TenantDB, get_db
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
@@ -15,7 +15,7 @@ router = APIRouter()
 
 def get_user_service(
     db: Annotated[Session, Depends(get_db)],
-    tenant: Annotated[TenantDB, Depends(get_current_tenant)],
+    tenant: Annotated[TenantDB, Depends(get_active_tenant)],
 ) -> UserService:
     return UserService(db, GenericUserService(db), tenant)
 
@@ -23,12 +23,21 @@ def get_user_service(
 _UserService = Annotated[UserService, Depends(get_user_service)]
 
 
-@router.get("/", response_model=Response[list[UserRead]])
+@router.get(
+    "/",
+    response_model=Response[list[UserRead]],
+    dependencies=[Depends(get_tenant_superuser)],
+)
 def get_all(service: _UserService):
     return Response(data=service.get_all())
 
 
-@router.post("/", response_model=Response[UserRead], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=Response[UserRead],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(get_tenant_superuser)],
+)
 def create(service: _UserService, user: UserCreate):
     try:
         data = service.create(
@@ -43,7 +52,11 @@ def create(service: _UserService, user: UserCreate):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
 
-@router.get("/{username}", response_model=Response[UserRead])
+@router.get(
+    "/{username}",
+    response_model=Response[UserRead],
+    dependencies=[Depends(get_tenant_superuser)],
+)
 def get_by_username(service: _UserService, username: str):
     try:
         return Response(data=service.get_by_username(username))
@@ -51,7 +64,12 @@ def get_by_username(service: _UserService, username: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.put("/{username}", response_model=Response[UserRead], status_code=status.HTTP_202_ACCEPTED)
+@router.put(
+    "/{username}",
+    response_model=Response[UserRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_tenant_superuser)],
+)
 def update(service: _UserService, username: str, user: UserUpdate):
     try:
         return Response(data=service.update(username, user.firstname, user.lastname))
@@ -60,7 +78,10 @@ def update(service: _UserService, username: str, user: UserUpdate):
 
 
 @router.patch(
-    "/{username}/activate", response_model=Response[UserRead], status_code=status.HTTP_202_ACCEPTED
+    "/{username}/activate",
+    response_model=Response[UserRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_tenant_superuser)],
 )
 def activate(service: _UserService, username: str):
     try:
@@ -73,6 +94,7 @@ def activate(service: _UserService, username: str):
     "/{username}/deactivate",
     response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_tenant_superuser)],
 )
 def deactivate(service: _UserService, username: str):
     try:
@@ -85,6 +107,7 @@ def deactivate(service: _UserService, username: str):
     "/{username}/reset-password",
     response_model=Response[UserRead],
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_tenant_superuser)],
 )
 def reset_password(service: _UserService, username: str, schema: Annotated[ResetPassword, Form()]):
     try:
@@ -94,7 +117,11 @@ def reset_password(service: _UserService, username: str, schema: Annotated[Reset
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{username}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_tenant_superuser)],
+)
 def delete(service: _UserService, username: str):
     try:
         service.delete(username)
@@ -103,7 +130,10 @@ def delete(service: _UserService, username: str):
 
 
 @router.patch(
-    "/bulk/activate", response_model=Response[list[UserRead]], status_code=status.HTTP_202_ACCEPTED
+    "/bulk/activate",
+    response_model=Response[list[UserRead]],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_tenant_superuser)],
 )
 def bulk_activate(service: _UserService, usernames: Annotated[list[str], Body()]):
     try:
@@ -116,6 +146,7 @@ def bulk_activate(service: _UserService, usernames: Annotated[list[str], Body()]
     "/bulk/deactivate",
     response_model=Response[list[UserRead]],
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(get_tenant_superuser)],
 )
 def bulk_deactivate(service: _UserService, usernames: Annotated[list[str], Body()]):
     try:
@@ -124,7 +155,11 @@ def bulk_deactivate(service: _UserService, usernames: Annotated[list[str], Body(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.delete("/bulk/delete", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/bulk/delete",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_tenant_superuser)],
+)
 def bulk_delete(service: _UserService, usernames: Annotated[list[str], Body()]):
     try:
         service.bulk_delete(usernames)

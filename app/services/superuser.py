@@ -4,6 +4,7 @@ from app.db import UserDB
 from app.db.tenant import TenantDB
 
 from .generic_user import GenericUserService, MoreThanOneSuperuserError, UserNotFoundError
+from .tenant import TenantNotFoundError
 
 
 class SuperuserService:
@@ -35,28 +36,17 @@ class SuperuserService:
 
 
 class TenantSuperuserService:
-    def __init__(
-        self, session: Session, generic_service: GenericUserService, tenant: TenantDB
-    ) -> None:
+    def __init__(self, session: Session, generic_service: GenericUserService) -> None:
         self._db = session
         self._generic_service = generic_service
-        self._tenant = tenant
 
     def get_all(self) -> list[UserDB]:
-        return (
-            self._db.query(UserDB)
-            .filter(UserDB.tenant == self._tenant, UserDB.is_tenant_superuser)
-            .all()
-        )
+        return self._db.query(UserDB).filter(UserDB.is_tenant_superuser).all()
 
     def get_by_username(self, username: str) -> UserDB:
         user = (
             self._db.query(UserDB)
-            .filter(
-                UserDB.tenant == self._tenant,
-                UserDB.username == username,
-                UserDB.is_tenant_superuser,
-            )
+            .filter(UserDB.username == username, UserDB.is_tenant_superuser)
             .first()
         )
 
@@ -68,9 +58,7 @@ class TenantSuperuserService:
 
     def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
         query = self._db.query(UserDB).filter(
-            UserDB.tenant == self._tenant,
-            UserDB.username.in_(usernames),
-            UserDB.is_tenant_superuser,
+            UserDB.username.in_(usernames), UserDB.is_tenant_superuser
         )
 
         if not query.all():
@@ -79,18 +67,21 @@ class TenantSuperuserService:
 
         return query
 
-    def create(self, username: str, firstname: str, lastname: str, plain_password: str) -> UserDB:
+    def create(
+        self, username: str, firstname: str, lastname: str, plain_password: str, tenant_slug: str
+    ) -> UserDB:
         if self._db.query(UserDB).filter(UserDB.is_tenant_superuser).count() >= 1:
             message = "More than one tenant superuser is not allowed."
             raise MoreThanOneSuperuserError(message)
 
+        tenant = self._db.query(TenantDB).filter(TenantDB.slug == tenant_slug).first()
+
+        if not tenant:
+            message = f"Tenant with slug '{tenant_slug}' not found."
+            raise TenantNotFoundError(message)
+
         return self._generic_service.create(
-            username,
-            firstname,
-            lastname,
-            plain_password,
-            role="tenant-superuser",
-            tenant=self._tenant,
+            username, firstname, lastname, plain_password, role="tenant-superuser", tenant=tenant
         )
 
     def update(
