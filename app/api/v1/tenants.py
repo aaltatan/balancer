@@ -26,7 +26,7 @@ def get_tenants(service: Service):
 @router.post("/", response_model=Response[TenantRead], status_code=status.HTTP_201_CREATED)
 def create_tenant(service: Service, tenant: TenantCreate):
     try:
-        return Response(data=service.create(tenant))
+        return Response(data=service.create(tenant.name, tenant.valid_from, tenant.valid_to))
     except TenantAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
@@ -42,7 +42,7 @@ def get_tenant(service: Service, slug: str):
 @router.put("/{slug}", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED)
 def update_tenant(service: Service, slug: str, tenant: TenantUpdate):
     try:
-        return Response(data=service.update(slug, tenant))
+        return Response(data=service.update(slug, tenant.name, tenant.valid_from, tenant.valid_to))
     except TenantNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 

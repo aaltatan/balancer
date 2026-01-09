@@ -1,6 +1,4 @@
-from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
-from typing import Any
 
 import pytest
 from app.db.tenant import TenantDB
@@ -33,26 +31,6 @@ def init_tenants(session: Session):
     session.query(TenantDB).delete()
 
 
-@dataclass
-class CreateSchema:
-    name: str
-    valid_from: datetime
-    valid_to: datetime
-
-    def model_dump(self) -> dict[str, Any]:
-        return asdict(self)
-
-
-@dataclass
-class UpdateSchema:
-    name: str | None = None
-    valid_from: datetime | None = None
-    valid_to: datetime | None = None
-
-    def model_dump(self) -> dict[str, Any]:
-        return asdict(self)
-
-
 def test_get_all(service: TenantService) -> None:
     tenants = service.get_all()
     assert len(tenants) == 2
@@ -73,11 +51,7 @@ def test_get_by_slug_not_found(service: TenantService) -> None:
 
 def test_create(service: TenantService) -> None:
     tenant = service.create(
-        CreateSchema(
-            "Dabbagh Supermarket",
-            datetime(2022, 1, 1, tzinfo=UTC),
-            datetime(2023, 1, 1, tzinfo=UTC),
-        )
+        "Dabbagh Supermarket", datetime(2022, 1, 1, tzinfo=UTC), datetime(2023, 1, 1, tzinfo=UTC)
     )
 
     assert tenant.name == "Dabbagh Supermarket"
@@ -90,21 +64,13 @@ def test_create(service: TenantService) -> None:
 def test_create_already_exists(service: TenantService) -> None:
     with pytest.raises(TenantAlreadyExistsError):
         service.create(
-            CreateSchema(
-                "Dabbagh",
-                datetime(2022, 1, 1, tzinfo=UTC),
-                datetime(2023, 1, 1, tzinfo=UTC),
-            )
+            "Dabbagh", datetime(2022, 1, 1, tzinfo=UTC), datetime(2023, 1, 1, tzinfo=UTC)
         )
 
 
 def test_create_with_arabic_chars(service: TenantService) -> None:
     tenant = service.create(
-        CreateSchema(
-            "ميني ماركت",
-            datetime(2022, 1, 1, tzinfo=UTC),
-            datetime(2023, 1, 1, tzinfo=UTC),
-        )
+        "ميني ماركت", datetime(2022, 1, 1, tzinfo=UTC), datetime(2023, 1, 1, tzinfo=UTC)
     )
 
     assert tenant.name == "ميني ماركت"
@@ -114,7 +80,7 @@ def test_create_with_arabic_chars(service: TenantService) -> None:
 
 
 def test_update(service: TenantService) -> None:
-    tenant = service.update("dabbagh", UpdateSchema(name="Dabbagh Supermarket"))
+    tenant = service.update("dabbagh", name="Dabbagh Supermarket")
 
     assert tenant.name == "Dabbagh Supermarket"
     assert not tenant.disabled

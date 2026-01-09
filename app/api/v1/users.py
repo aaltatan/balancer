@@ -30,7 +30,13 @@ def get_users(service: Service):
 @router.post("/", response_model=Response[UserRead], status_code=status.HTTP_201_CREATED)
 def create_tenant_user(service: Service, user: UserCreate):
     try:
-        data = service.create_tenant_user(user, user.password.get_secret_value())
+        data = service.create_tenant_user(
+            user.username,
+            user.firstname,
+            user.lastname,
+            user.password.get_secret_value(),
+            user.permissions,
+        )
         return Response(data=data)
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
@@ -47,7 +53,7 @@ def get_user(service: Service, username: str):
 @router.put("/{username}", response_model=Response[UserRead], status_code=status.HTTP_202_ACCEPTED)
 def update_user(service: Service, username: str, user: UserUpdate):
     try:
-        return Response(data=service.update(username, user))
+        return Response(data=service.update(username, user.firstname, user.lastname))
     except UserNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 

@@ -26,7 +26,12 @@ Service = Annotated[UserService, Depends(get_user_service)]
 @router.post("/", response_model=Response[UserRead], status_code=status.HTTP_201_CREATED)
 def create_tenant_superuser(service: Service, user: UserCreate):
     try:
-        data = service.create_tenant_superuser(user, user.password.get_secret_value())
+        data = service.create_tenant_superuser(
+            user.username,
+            user.firstname,
+            user.lastname,
+            user.password.get_secret_value(),
+        )
         return Response(data=data)
     except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None

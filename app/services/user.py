@@ -1,5 +1,3 @@
-from typing import Any, Protocol
-
 from sqlalchemy.orm import Query, Session
 
 from app.db import Permission, PermissionDB, Role, TenantDB, UserDB
@@ -12,22 +10,6 @@ class UserNotFoundError(Exception):
 
 class UserAlreadyExistsError(Exception):
     pass
-
-
-class CreateSchema(Protocol):
-    username: str
-    firstname: str
-    lastname: str
-    permissions: set
-
-    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
-
-
-class UpdateSchema(Protocol):
-    firstname: str | None = None
-    lastname: str | None = None
-
-    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class UserService:
@@ -51,23 +33,36 @@ class UserService:
 
         return user
 
-    def _create(self, user: CreateSchema, password: str, *, role: Role = "tenant-user") -> UserDB:
+    def _create(  # noqa: PLR0913
+        self,
+        username: str,
+        firstname: str,
+        lastname: str,
+        password: str,
+        permissions: set[Permission] | None = None,
+        role: Role = "tenant-user",
+    ) -> UserDB:
+        if not permissions:
+            permissions = set()
+
         user_db_exists = (
             self._db.query(UserDB)
-            .filter(UserDB.username == user.username, UserDB.tenant == self._tenant)
+            .filter(UserDB.username == username, UserDB.tenant == self._tenant)
             .first()
         )
 
         if user_db_exists:
-            message = f"User with username '{user.username}' already exists."
+            message = f"User with username '{username}' already exists."
             raise UserAlreadyExistsError(message)
 
         user_db = UserDB(
-            **user.model_dump(),
+            username=username,
+            firstname=firstname,
+            lastname=lastname,
             role=role,
             hashed_password=hash_password(password),
             permissions=set(
-                self._db.query(PermissionDB).filter(PermissionDB.name.in_(user.permissions)).all()
+                self._db.query(PermissionDB).filter(PermissionDB.name.in_(permissions)).all()
             ),
             tenant=self._tenant,
         )
@@ -78,11 +73,20 @@ class UserService:
 
         return user_db
 
-    def create_tenant_superuser(self, user: CreateSchema, password: str) -> UserDB:
-        return self._create(user, role="tenant-superuser", password=password)
+    def create_tenant_superuser(
+        self, username: str, firstname: str, lastname: str, password: str
+    ) -> UserDB:
+        return self._create(username, firstname, lastname, password, role="tenant-superuser")
 
-    def create_tenant_user(self, user: CreateSchema, password: str) -> UserDB:
-        return self._create(user, password)
+    def create_tenant_user(
+        self,
+        username: str,
+        firstname: str,
+        lastname: str,
+        password: str,
+        permissions: set[Permission],
+    ) -> UserDB:
+        return self._create(username, firstname, lastname, password, permissions)
 
     def update_permissions(self, username: str, permissions: set[Permission]) -> UserDB:
         user_db = self.get_by_username(username)
@@ -99,12 +103,19 @@ class UserService:
 
         return user_db
 
-    def update(self, username: str, user: UpdateSchema) -> UserDB:
+    def update(
+        self, username: str, firstname: str | None = None, lastname: str | None = None
+    ) -> UserDB:
         user_db = self.get_by_username(username)
 
-        for key, value in user.model_dump().items():
-            if value is not None:
-                setattr(user_db, key, value)
+        if not firstname and not lastname:
+            return user_db
+
+        if firstname:
+            user_db.firstname = firstname
+
+        if lastname:
+            user_db.lastname = lastname
 
         self._db.commit()
         self._db.refresh(user_db)

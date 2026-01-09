@@ -18,7 +18,12 @@ def create_superuser(
     user: UserCreate = Depends(get_create_superuser_schema),
 ) -> None:
     try:
-        user_db = service.create_superuser(user, user.password.get_secret_value())
+        user_db = service.create_superuser(
+            user.username,
+            user.firstname,
+            user.lastname,
+            user.password.get_secret_value(),
+        )
     except UserAlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
 
