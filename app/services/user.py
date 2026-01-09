@@ -66,7 +66,6 @@ class UserService:
         query = self._get_usernames_query(usernames)
         query.update({"is_active": True})
         self._db.commit()
-        self._db.refresh(query)
 
         return query.all()
 
@@ -74,7 +73,6 @@ class UserService:
         query = self._get_usernames_query(usernames)
         query.update({"is_active": False})
         self._db.commit()
-        self._db.refresh(query)
 
         return query.all()
 

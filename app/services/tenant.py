@@ -49,7 +49,6 @@ class TenantService:
 
         self._db.add(tenant_db)
         self._db.commit()
-        self._db.refresh(tenant_db)
 
         return tenant_db
 
@@ -87,7 +86,6 @@ class TenantService:
 
         tenant_db.disabled = False
         self._db.commit()
-        self._db.refresh(tenant_db)
 
         return tenant_db
 
@@ -99,7 +97,6 @@ class TenantService:
 
         tenant_db.disabled = True
         self._db.commit()
-        self._db.refresh(tenant_db)
 
         return tenant_db
 

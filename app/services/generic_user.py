@@ -39,7 +39,7 @@ class GenericUserService:
         user_db_exists = user_db_exists_query.first()
 
         if user_db_exists:
-            message = f"User with username '{username}' already exists."
+            message = "Unable to create account. Please try different credentials."
             raise UserAlreadyExistsError(message)
 
         user_db = UserDB(
@@ -60,7 +60,6 @@ class GenericUserService:
 
         self._db.add(user_db)
         self._db.commit()
-        self._db.refresh(user_db)
 
         return user_db
 
@@ -87,7 +86,6 @@ class GenericUserService:
 
         user_db.is_active = True
         self._db.commit()
-        self._db.refresh(user_db)
 
         return user_db
 
@@ -97,7 +95,6 @@ class GenericUserService:
 
         user_db.is_active = False
         self._db.commit()
-        self._db.refresh(user_db)
 
         return user_db
 
@@ -109,6 +106,5 @@ class GenericUserService:
         user_db.hashed_password = hash_password(new_password)
 
         self._db.commit()
-        self._db.refresh(user_db)
 
         return user_db

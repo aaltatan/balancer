@@ -3,7 +3,7 @@ from sqlalchemy.orm import Query, Session
 from app.db import UserDB
 from app.db.tenant import TenantDB
 
-from .generic_user import GenericUserService, MoreThanOneSuperuserError, UserNotFoundError
+from .generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
 from .tenant import TenantNotFoundError
 
 
@@ -42,15 +42,21 @@ class TenantSuperuserService:
     def create(
         self, username: str, firstname: str, lastname: str, plain_password: str, tenant_slug: str
     ) -> UserDB:
-        if self._db.query(UserDB).filter(UserDB.is_tenant_superuser).count() >= 1:
-            message = "More than one tenant superuser is not allowed."
-            raise MoreThanOneSuperuserError(message)
-
         tenant = self._db.query(TenantDB).filter(TenantDB.slug == tenant_slug).first()
 
         if not tenant:
             message = f"Tenant with slug '{tenant_slug}' not found."
             raise TenantNotFoundError(message)
+
+        user_db_exists = (
+            self._db.query(UserDB)
+            .filter(UserDB.username == username, UserDB.tenant == tenant)
+            .first()
+        )
+
+        if user_db_exists:
+            message = "Unable to create account. Please try different credentials."
+            raise UserAlreadyExistsError(message)
 
         return self._generic_service.create(
             username, firstname, lastname, plain_password, role="tenant-superuser", tenant=tenant
