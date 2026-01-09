@@ -8,6 +8,8 @@ class Config(BaseSettings):
     app_version: str = "0.1.0"
     app_description: str = "A simple financial management system for small businesses."
 
+    default_timezone: str = "Asia/Damascus"
+
     db_url: str = ""
 
     debug: bool = False
