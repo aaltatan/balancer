@@ -17,6 +17,8 @@ from sqlalchemy import (
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, Mapper, mapped_column, relationship
 
+from app.utils.timezone import get_default_tz_now
+
 from ._schema import Base
 
 if TYPE_CHECKING:
@@ -37,8 +39,10 @@ class TenantDB(Base):
 
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
 
-    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, onupdate=func.now(), default=func.now())
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, default=get_default_tz_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP, onupdate=get_default_tz_now, default=get_default_tz_now
+    )
 
     users: Mapped[set["UserDB"]] = relationship("UserDB", back_populates="tenant", lazy="joined")
 
@@ -46,7 +50,7 @@ class TenantDB(Base):
     def is_active(self) -> bool:
         return (
             self.valid_from <= datetime.now(tz=timezone.utc).date() <= self.valid_to
-        ) or not self.disabled
+        ) and not self.disabled
 
     @is_active.inplace.expression
     @classmethod
@@ -56,7 +60,16 @@ class TenantDB(Base):
         return date_valid & (~cls.disabled)
 
     def __repr__(self) -> str:
-        return f"<TenantDB(name={self.name})>"
+        return (
+            "<TenantDB("
+            f"name={self.name}, "
+            f"slug={self.slug}, "
+            f"disabled={self.disabled}, "
+            f"is_active={self.is_active}, "
+            f"valid_from={self.valid_from}, "
+            f"valid_to={self.valid_to}"
+            ")>"
+        )
 
 
 def set_tenant_slugify(mapper: Mapper, connection: Connection, target: TenantDB) -> None:  # noqa: ARG001
