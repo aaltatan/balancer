@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db.user import UserDB
 from app.utils.hash import hash_password, verify_password
+from app.utils.text import split_username
 
 
 class AuthenticationError(Exception):
@@ -13,9 +14,20 @@ class AuthenticationError(Exception):
 
 
 def authenticate(db: Session, username: str, password: str) -> UserDB | None:
-    user = db.query(UserDB).filter(UserDB.username == username).first()
+    user_username, tenant_slug = split_username(username)
 
-    if user and not verify_password(password, user.hashed_password):
+    user = db.query(UserDB).filter(UserDB.username == user_username).first()
+
+    none_checkers = [
+        lambda: not user,
+        lambda: user and not user.is_active,
+        lambda: user and not verify_password(password, user.hashed_password),
+        lambda: user and not user.is_superuser and not tenant_slug,
+        lambda: user and not user.is_superuser and user.tenant and user.tenant.slug != tenant_slug,
+        lambda: user and not user.is_superuser and user.tenant and not user.tenant.is_active,
+    ]
+
+    if any(checker() for checker in none_checkers):
         return None
 
     return user
