@@ -12,4 +12,6 @@ wheels/
 .env
 *.db
 *.sqlite3
+
 profiler.txt
+profiler.html
