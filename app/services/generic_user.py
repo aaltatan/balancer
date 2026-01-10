@@ -1,11 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.db import Permission, PermissionDB, Role, TenantDB, UserDB
-from app.utils.hash import PWDHasherFn
-
-
-class MoreThanOneSuperuserError(Exception):
-    pass
+from app.utils.security import PWDHasherFn
 
 
 class UserAlreadyExistsError(Exception):

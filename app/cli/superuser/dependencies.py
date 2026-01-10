@@ -12,7 +12,7 @@ from app.db import get_db
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
-from app.utils.hash import PWDHasherFn, hash_password
+from app.utils.security import PWDHasherFn, hash_password
 
 from .inputs import (
     FirstnameOpt,

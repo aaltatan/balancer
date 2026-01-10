@@ -19,6 +19,7 @@ class Config(BaseSettings):
     jwt_algorithm: str = ""
     jwt_access_token_expires_in_minutes: int = 15
     jwt_refresh_token_expires_in_days: int = 7
+    jwt_token_type: str = ""
 
     model_config = SettingsConfigDict(env_file=".env")
 

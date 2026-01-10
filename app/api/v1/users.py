@@ -2,9 +2,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 
-from app.api.dependencies.auth import ActiveTenantDI, RequireTenantSuperuserDI
+from app.api.dependencies.auth import RequireTenantSuperuserDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI
+from app.api.dependencies.tenant import ActiveTenantDI
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
 from app.services.generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError

@@ -7,21 +7,28 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.core.config import Config
-from app.db.tenant import TenantDB
 from app.db.user import UserDB
 
 from .config import ConfigDI
 from .db import SessionDI
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token", refreshUrl="api/auth/token/refresh")
+oauth2_scheme_superuser = OAuth2PasswordBearer(
+    scheme_name="superuser", tokenUrl="/api/auth/superuser/token"
+)
+oauth2_scheme_tenant = OAuth2PasswordBearer(
+    scheme_name="tenant", tokenUrl="/api/auth/{tenant_slug}/token"
+)
 
 type _WrapperFn = Callable[[Session, Config, str], UserDB]
 
 
-def get_active_user(token_type: Literal["access", "refresh"]) -> _WrapperFn:
-    def wrapper(
-        db: SessionDI, config: ConfigDI, token: Annotated[str, Depends(oauth2_scheme)]
-    ) -> UserDB:
+def get_active_user(
+    token_type: Literal["access", "refresh"],
+    scheme: OAuth2PasswordBearer,
+    *,
+    is_superuser: bool = False,
+) -> _WrapperFn:
+    def wrapper(db: SessionDI, config: ConfigDI, token: Annotated[str, Depends(scheme)]) -> UserDB:
         exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",
@@ -41,7 +48,12 @@ def get_active_user(token_type: Literal["access", "refresh"]) -> _WrapperFn:
         if not username:
             raise exception
 
-        user = db.query(UserDB).filter(UserDB.username == username).first()
+        query = db.query(UserDB).filter(UserDB.username == username)
+
+        if is_superuser:
+            query = query.filter(UserDB.is_superuser)
+
+        user = query.first()
 
         if not user:
             raise exception
@@ -58,35 +70,6 @@ def get_active_user(token_type: Literal["access", "refresh"]) -> _WrapperFn:
     return wrapper
 
 
-def get_active_tenant(user: "ActiveUserDI") -> TenantDB:
-    if not user.tenant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if not user.tenant.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tenant is not active",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return user.tenant
-
-
-def get_superuser(user: "ActiveUserDI") -> UserDB:
-    if not user.is_superuser:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Superuser privileges required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return user
-
-
 def get_tenant_superuser(user: "ActiveUserDI") -> UserDB:
     if not user.is_tenant_superuser:
         raise HTTPException(
@@ -98,14 +81,10 @@ def get_tenant_superuser(user: "ActiveUserDI") -> UserDB:
     return user
 
 
-ActiveUserDI = Annotated[UserDB, Depends(get_active_user("access"))]
-ActiveUserFromRefreshTokenDI = Annotated[UserDB, Depends(get_active_user("refresh"))]
-ActiveTenantDI = Annotated[TenantDB, Depends(get_active_tenant)]
+ActiveUserDI = Annotated[UserDB, Depends(get_active_user("access", oauth2_scheme_tenant))]
 TenantSuperuserDI = Annotated[UserDB, Depends(get_tenant_superuser)]
-SuperuserDI = Annotated[UserDB, Depends(get_superuser)]
+SuperuserDI = Annotated[UserDB, Depends(get_active_user("access", oauth2_scheme_superuser))]
 
-RequireActiveUserDI = Depends(get_active_user("access"))
-RequireActiveUserFromRefreshTokenDI = Depends(get_active_user("refresh"))
-RequireActiveTenantDI = Depends(get_active_tenant)
+RequireActiveUserDI = Depends(get_active_user("access", oauth2_scheme_tenant))
 RequireTenantSuperuserDI = Depends(get_tenant_superuser)
-RequireSuperuserDI = Depends(get_superuser)
+RequireSuperuserDI = Depends(get_active_user("access", oauth2_scheme_superuser))

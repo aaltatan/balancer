@@ -7,13 +7,8 @@ from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
-from app.services.generic_user import (
-    GenericUserService,
-    MoreThanOneSuperuserError,
-    UserAlreadyExistsError,
-    UserNotFoundError,
-)
-from app.services.tenant_superuser import TenantSuperuserService
+from app.services.generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
+from app.services.tenant_superuser import TenantNotFoundError, TenantSuperuserService
 
 router = APIRouter()
 
@@ -52,8 +47,10 @@ def create(
             hasher_fn=hasher_fn,
         )
         return Response(data=data)
-    except (UserAlreadyExistsError, MoreThanOneSuperuserError) as e:
+    except UserAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
+    except TenantNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.get("/{username}", response_model=Response[UserRead], dependencies=[RequireSuperuserDI])

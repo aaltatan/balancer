@@ -2,7 +2,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import UserDB
 from app.db.tenant import TenantDB
-from app.utils.hash import PWDHasherFn
+from app.utils.security import PWDHasherFn
 
 from .generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
 from .tenant import TenantNotFoundError

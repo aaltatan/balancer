@@ -2,7 +2,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import Permission, TenantDB, UserDB
 from app.db.permission import PermissionDB
-from app.utils.hash import PWDHasherFn
+from app.utils.security import PWDHasherFn
 
 from .generic_user import GenericUserService, UserNotFoundError
 

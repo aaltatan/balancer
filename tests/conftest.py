@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from app.db import Base, get_db
 from app.main import app
-from app.utils.hash import hash_password, verify_password
+from app.utils.security import hash_password, verify_password
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import Session, sessionmaker

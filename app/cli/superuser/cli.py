@@ -6,7 +6,7 @@ from typer_di import Depends, TyperDI
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.generic_user import UserAlreadyExistsError, UserNotFoundError
 from app.services.superuser import SuperuserService
-from app.utils.hash import PWDHasherFn
+from app.utils.security import PWDHasherFn
 
 from .dependencies import (
     get_console,

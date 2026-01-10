@@ -1,5 +1,3 @@
 _USERNAME_REGEX = r"[a-z][a-z0-9]*(.|_)?[a-z0-9]*"
-_TENANT_SLUG_REGEX = r"[a-z0-9]+(-[a-z0-9]+)*"
 
 USERNAME_REGEX = rf"^{_USERNAME_REGEX}$"
-USERNAME_TENANT_SLUG_REGEX = rf"^{_USERNAME_REGEX}@{_TENANT_SLUG_REGEX}$"

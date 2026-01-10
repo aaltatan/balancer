@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.utils.hash import PWDHasherFn, PWDVerifierFn, hash_password, verify_password
+from app.utils.security import PWDHasherFn, PWDVerifierFn, hash_password, verify_password
 
 
 def get_hasher_fn() -> PWDHasherFn:
