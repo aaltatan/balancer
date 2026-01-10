@@ -12,6 +12,7 @@ from app.db import get_db
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
+from app.utils.hash import PWDHasherFn, hash_password
 
 from .inputs import (
     FirstnameOpt,
@@ -21,6 +22,10 @@ from .inputs import (
     PasswordOpt,
     UsernameOpt,
 )
+
+
+def get_hasher_fn() -> PWDHasherFn:
+    return hash_password
 
 
 def get_superuser_service(db: Generator[Session, Any, None] = Depends(get_db)) -> SuperuserService:

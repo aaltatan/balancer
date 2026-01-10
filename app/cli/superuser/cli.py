@@ -6,10 +6,12 @@ from typer_di import Depends, TyperDI
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.generic_user import UserAlreadyExistsError, UserNotFoundError
 from app.services.superuser import SuperuserService
+from app.utils.hash import PWDHasherFn
 
 from .dependencies import (
     get_console,
     get_create_schema,
+    get_hasher_fn,
     get_reset_password_schema,
     get_superuser_service,
     get_user_update_schema,
@@ -43,11 +45,12 @@ def create_superuser(
     console: Console = Depends(get_console),
     superuser: UserCreate = Depends(get_create_schema),
     superuser_service: SuperuserService = Depends(get_superuser_service),
+    hasher_fn: PWDHasherFn = Depends(get_hasher_fn),
 ) -> None:
     try:
         password = superuser.password.get_secret_value()
         superuser_db = superuser_service.create(
-            superuser.username, superuser.firstname, superuser.lastname, password
+            superuser.username, superuser.firstname, superuser.lastname, password, hasher_fn
         )
     except UserAlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
@@ -126,10 +129,11 @@ def reset_superuser_password(
     console: Console = Depends(get_console),
     superuser_service: SuperuserService = Depends(get_superuser_service),
     schema: ResetPassword = Depends(get_reset_password_schema),
+    hasher_fn: PWDHasherFn = Depends(get_hasher_fn),
 ):
     try:
         superuser = superuser_service.reset_password(
-            username, schema.new_password.get_secret_value()
+            username, schema.new_password.get_secret_value(), hasher_fn
         )
     except UserNotFoundError as e:
         raise typer.BadParameter(str(e)) from e
