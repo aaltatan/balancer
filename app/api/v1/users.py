@@ -6,9 +6,10 @@ from app.api.dependencies.auth import RequireTenantSuperuserDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI
 from app.api.dependencies.tenant import ActiveTenantDI
+from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
-from app.services.generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
+from app.services.generic_user import GenericUserService
 from app.services.user import UserService
 
 router = APIRouter()
@@ -43,8 +44,8 @@ def create(service: _UserService, user: UserCreate, hasher_fn: PWDHasherFnDI):
             hasher_fn=hasher_fn,
         )
         return Response(data=data)
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
+    except AlreadyExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
 
 
 @router.get(
@@ -53,7 +54,7 @@ def create(service: _UserService, user: UserCreate, hasher_fn: PWDHasherFnDI):
 def get_by_username(service: _UserService, username: str):
     try:
         return Response(data=service.get_by_username(username))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -66,7 +67,7 @@ def get_by_username(service: _UserService, username: str):
 def update(service: _UserService, username: str, user: UserUpdate):
     try:
         return Response(data=service.update(username, user.firstname, user.lastname))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -79,7 +80,7 @@ def update(service: _UserService, username: str, user: UserUpdate):
 def activate(service: _UserService, username: str):
     try:
         return Response(data=service.activate(username))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -92,7 +93,7 @@ def activate(service: _UserService, username: str):
 def deactivate(service: _UserService, username: str):
     try:
         return Response(data=service.deactivate(username))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -113,7 +114,7 @@ def reset_password(
             username, schema.new_password.get_secret_value(), hasher_fn=hasher_fn
         )
         return Response(data=data)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -123,7 +124,7 @@ def reset_password(
 def delete(service: _UserService, username: str):
     try:
         service.delete(username)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -136,7 +137,7 @@ def delete(service: _UserService, username: str):
 def bulk_activate(service: _UserService, usernames: Annotated[list[str], Body()]):
     try:
         return Response(data=service.bulk_activate(usernames))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -149,7 +150,7 @@ def bulk_activate(service: _UserService, usernames: Annotated[list[str], Body()]
 def bulk_deactivate(service: _UserService, usernames: Annotated[list[str], Body()]):
     try:
         return Response(data=service.bulk_deactivate(usernames))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -159,5 +160,5 @@ def bulk_deactivate(service: _UserService, usernames: Annotated[list[str], Body(
 def bulk_delete(service: _UserService, usernames: Annotated[list[str], Body()]):
     try:
         service.bulk_delete(usernames)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

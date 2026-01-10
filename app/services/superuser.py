@@ -1,9 +1,10 @@
 from sqlalchemy.orm import Session
 
 from app.db import UserDB
+from app.exceptions import NotFoundError
 from app.utils.security import PWDHasherFn
 
-from .generic_user import GenericUserService, UserNotFoundError
+from .generic_user import GenericUserService
 
 
 class SuperuserService:
@@ -23,7 +24,7 @@ class SuperuserService:
 
         if not user:
             message = f"User with username '{username}' not found."
-            raise UserNotFoundError(message)
+            raise NotFoundError(message)
 
         return user
 

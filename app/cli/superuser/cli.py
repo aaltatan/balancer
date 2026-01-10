@@ -3,8 +3,8 @@ import typer
 from rich.console import Console
 from typer_di import Depends, TyperDI
 
+from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models.user import ResetPassword, UserCreate, UserUpdate
-from app.services.generic_user import UserAlreadyExistsError, UserNotFoundError
 from app.services.superuser import SuperuserService
 from app.utils.security import PWDHasherFn
 
@@ -34,7 +34,7 @@ def list_superusers(
 ) -> None:
     try:
         users = superuser_service.get_all()
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(get_table(users))
@@ -52,7 +52,7 @@ def create_superuser(
         superuser_db = superuser_service.create(
             superuser.username, superuser.firstname, superuser.lastname, password, hasher_fn
         )
-    except UserAlreadyExistsError as e:
+    except AlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(
@@ -69,7 +69,7 @@ def update_superuser(
 ):
     try:
         superuser_db = superuser_service.update(username, superuser.firstname, superuser.lastname)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(
@@ -85,7 +85,7 @@ def activate_superuser(
 ):
     try:
         superuser_db = superuser_service.activate(username)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(
@@ -101,7 +101,7 @@ def deactivate_superuser(
 ):
     try:
         superuser_db = superuser_service.deactivate(username)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(
@@ -117,7 +117,7 @@ def delete_superuser(
 ):
     try:
         superuser_service.delete(username)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(f"[bold green]Superuser '{username}' deleted successfully[/bold green]")
@@ -135,7 +135,7 @@ def reset_superuser_password(
         superuser = superuser_service.reset_password(
             username, schema.new_password.get_secret_value(), hasher_fn
         )
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(

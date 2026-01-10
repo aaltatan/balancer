@@ -5,10 +5,11 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI
+from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
-from app.services.generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
-from app.services.tenant_superuser import TenantNotFoundError, TenantSuperuserService
+from app.services.generic_user import GenericUserService
+from app.services.tenant_superuser import TenantSuperuserService
 
 router = APIRouter()
 
@@ -47,9 +48,9 @@ def create(
             hasher_fn=hasher_fn,
         )
         return Response(data=data)
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
-    except TenantNotFoundError as e:
+    except AlreadyExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -57,7 +58,7 @@ def create(
 def get_by_username(service: _TenantSuperuserService, username: str):
     try:
         return Response(data=service.get_by_username(username))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -70,7 +71,7 @@ def get_by_username(service: _TenantSuperuserService, username: str):
 def update(service: _TenantSuperuserService, username: str, user: UserUpdate):
     try:
         return Response(data=service.update(username, user.firstname, user.lastname))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -83,7 +84,7 @@ def update(service: _TenantSuperuserService, username: str, user: UserUpdate):
 def activate(service: _TenantSuperuserService, username: str):
     try:
         return Response(data=service.activate(username))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -96,7 +97,7 @@ def activate(service: _TenantSuperuserService, username: str):
 def deactivate(service: _TenantSuperuserService, username: str):
     try:
         return Response(data=service.deactivate(username))
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -114,7 +115,7 @@ def reset_password(
             username, schema.new_password.get_secret_value(), hasher_fn=hasher_fn
         )
         return Response(data=data)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -124,5 +125,5 @@ def reset_password(
 def delete(service: _TenantSuperuserService, username: str):
     try:
         service.delete(username)
-    except UserNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

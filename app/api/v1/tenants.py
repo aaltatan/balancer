@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
+from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models import Response
 from app.models.tenant import TenantCreate, TenantRead, TenantUpdate
-from app.services.tenant import TenantAlreadyExistsError, TenantNotFoundError, TenantService
+from app.services.tenant import TenantService
 
 
 def get_tenant_service(db: SessionDI) -> TenantService:
@@ -32,15 +33,15 @@ def get_all(service: _TenantService):
 def create(service: _TenantService, tenant: TenantCreate):
     try:
         return Response(data=service.create(tenant.name, tenant.valid_from, tenant.valid_to))
-    except TenantAlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
+    except AlreadyExistsError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
 
 
 @router.get("/{slug}", response_model=Response[TenantRead], dependencies=[RequireSuperuserDI])
 def get_by_slug(service: _TenantService, slug: str):
     try:
         return Response(data=service.get_by_slug(slug))
-    except TenantNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -53,7 +54,7 @@ def get_by_slug(service: _TenantService, slug: str):
 def update(service: _TenantService, slug: str, tenant: TenantUpdate):
     try:
         return Response(data=service.update(slug, tenant.name, tenant.valid_from, tenant.valid_to))
-    except TenantNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -66,7 +67,7 @@ def update(service: _TenantService, slug: str, tenant: TenantUpdate):
 def activate(service: _TenantService, slug: str):
     try:
         return Response(data=service.activate(slug))
-    except TenantNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -79,7 +80,7 @@ def activate(service: _TenantService, slug: str):
 def deactivate(service: _TenantService, slug: str):
     try:
         return Response(data=service.deactivate(slug))
-    except TenantNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
@@ -87,5 +88,5 @@ def deactivate(service: _TenantService, slug: str):
 def delete(service: _TenantService, slug: str):
     try:
         service.delete(slug)
-    except TenantNotFoundError as e:
+    except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

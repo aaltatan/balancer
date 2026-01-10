@@ -2,9 +2,10 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import Permission, TenantDB, UserDB
 from app.db.permission import PermissionDB
+from app.exceptions import NotFoundError
 from app.utils.security import PWDHasherFn
 
-from .generic_user import GenericUserService, UserNotFoundError
+from .generic_user import GenericUserService
 
 
 class UserService:
@@ -29,7 +30,7 @@ class UserService:
 
         if not query.all():
             message = f"User(s) with username(s) '{', '.join(usernames)}' not found."
-            raise UserNotFoundError(message)
+            raise NotFoundError(message)
 
         return query
 
@@ -44,7 +45,7 @@ class UserService:
 
         if not user:
             message = f"User with username '{username}' not found."
-            raise UserNotFoundError(message)
+            raise NotFoundError(message)
 
         return user
 

@@ -1,74 +1,44 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Form, HTTPException, status
 
-from app.api.dependencies.auth import ActiveUserDI
+from app.api.dependencies.auth import (
+    ActiveUserDI,
+    AuthenticatedSuperuserDI,
+    AuthenticatedTenantUserDI,
+)
 from app.api.dependencies.config import ConfigDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI, PWDVerifierFnDI
-from app.api.dependencies.tenant import ActiveTenantDI
-from app.db.user import UserDB
 from app.models.auth import AccessToken, ChangePassword
 from app.models.user import UserReadWithoutRelations
-from app.services.auth import (
-    AuthenticationError,
-    authenticate_superuser,
-    authenticate_tenant_user,
-    change_user_password,
-    login,
-)
-
-OAuth2Form = Annotated[OAuth2PasswordRequestForm, Depends()]
-
-
-def get_authenticated_superuser(
-    db: SessionDI, form: OAuth2Form, verifier_fn: PWDVerifierFnDI
-) -> UserDB | None:
-    return authenticate_superuser(db, form.username, form.password, verifier_fn)
-
-
-def get_authenticated_tenant_user(
-    db: SessionDI, form: OAuth2Form, tenant_db: ActiveTenantDI, verifier_fn: PWDVerifierFnDI
-) -> UserDB | None:
-    return authenticate_tenant_user(db, form.username, form.password, tenant_db, verifier_fn)
-
-
-_SuperuserDI = Annotated[UserDB | None, Depends(get_authenticated_superuser)]
-_TenantUserDI = Annotated[UserDB | None, Depends(get_authenticated_tenant_user)]
-
+from app.services.auth import AuthenticationError, change_user_password, get_tokens
 
 router = APIRouter()
 
 
 @router.post("/superuser/token", response_model=AccessToken)
-def login_superuser(config: ConfigDI, superuser: _SuperuserDI = None):
-    try:
-        return login(
-            access_token_expires_in_minutes=config.jwt_access_token_expires_in_minutes,
-            refresh_token_expires_in_days=config.jwt_refresh_token_expires_in_days,
-            secret_key=config.jwt_secret_key,
-            algorithm=config.jwt_algorithm,
-            token_type=config.jwt_token_type,
-            user=superuser,
-        )
-    except AuthenticationError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+def login_superuser(config: ConfigDI, superuser: AuthenticatedSuperuserDI):
+    return get_tokens(
+        access_token_expires_in_minutes=config.jwt_access_token_expires_in_minutes,
+        refresh_token_expires_in_days=config.jwt_refresh_token_expires_in_days,
+        secret_key=config.jwt_secret_key,
+        algorithm=config.jwt_algorithm,
+        token_type=config.jwt_token_type,
+        user=superuser,
+    )
 
 
 @router.post("/{tenant_slug}/token", response_model=AccessToken)
-def login_tenant_user(config: ConfigDI, tenant_user: _TenantUserDI = None):
-    try:
-        return login(
-            access_token_expires_in_minutes=config.jwt_access_token_expires_in_minutes,
-            refresh_token_expires_in_days=config.jwt_refresh_token_expires_in_days,
-            secret_key=config.jwt_secret_key,
-            algorithm=config.jwt_algorithm,
-            token_type=config.jwt_token_type,
-            user=tenant_user,
-        )
-    except AuthenticationError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+def login_tenant_user(config: ConfigDI, tenant_user: AuthenticatedTenantUserDI):
+    return get_tokens(
+        access_token_expires_in_minutes=config.jwt_access_token_expires_in_minutes,
+        refresh_token_expires_in_days=config.jwt_refresh_token_expires_in_days,
+        secret_key=config.jwt_secret_key,
+        algorithm=config.jwt_algorithm,
+        token_type=config.jwt_token_type,
+        user=tenant_user,
+    )
 
 
 @router.patch("/change-password", response_model=UserReadWithoutRelations)

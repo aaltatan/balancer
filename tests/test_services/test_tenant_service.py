@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.db.tenant import TenantDB
-from app.services.tenant import TenantAlreadyExistsError, TenantNotFoundError, TenantService
+from app.exceptions import AlreadyExistsError, NotFoundError
+from app.services.tenant import TenantService
 from sqlalchemy.orm import Session
 
 
@@ -45,7 +46,7 @@ def test_get_by_slug(service: TenantService) -> None:
 
 
 def test_get_by_slug_not_found(service: TenantService) -> None:
-    with pytest.raises(TenantNotFoundError):
+    with pytest.raises(NotFoundError):
         service.get_by_slug("not-found")
 
 
@@ -62,7 +63,7 @@ def test_create(service: TenantService) -> None:
 
 
 def test_create_already_exists(service: TenantService) -> None:
-    with pytest.raises(TenantAlreadyExistsError):
+    with pytest.raises(AlreadyExistsError):
         service.create(
             "Dabbagh", datetime(2022, 1, 1, tzinfo=UTC), datetime(2023, 1, 1, tzinfo=UTC)
         )

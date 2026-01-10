@@ -2,10 +2,10 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import UserDB
 from app.db.tenant import TenantDB
+from app.exceptions import AlreadyExistsError, NotFoundError
 from app.utils.security import PWDHasherFn
 
-from .generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
-from .tenant import TenantNotFoundError
+from .generic_user import GenericUserService
 
 
 class TenantSuperuserService:
@@ -25,7 +25,7 @@ class TenantSuperuserService:
 
         if not user:
             message = f"User with username '{username}' not found."
-            raise UserNotFoundError(message)
+            raise NotFoundError(message)
 
         return user
 
@@ -36,7 +36,7 @@ class TenantSuperuserService:
 
         if not query.all():
             message = f"User(s) with username(s) '{', '.join(usernames)}' not found."
-            raise UserNotFoundError(message)
+            raise NotFoundError(message)
 
         return query
 
@@ -53,7 +53,7 @@ class TenantSuperuserService:
 
         if not tenant:
             message = f"Tenant with slug '{tenant_slug}' not found."
-            raise TenantNotFoundError(message)
+            raise NotFoundError(message)
 
         user_db_exists = (
             self._db.query(UserDB)
@@ -63,7 +63,7 @@ class TenantSuperuserService:
 
         if user_db_exists:
             message = "Unable to create account. Please try different credentials."
-            raise UserAlreadyExistsError(message)
+            raise AlreadyExistsError(message)
 
         return self._generic_service.create(
             username,

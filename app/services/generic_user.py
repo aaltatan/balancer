@@ -1,15 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.db import Permission, PermissionDB, Role, TenantDB, UserDB
+from app.exceptions import AlreadyExistsError
 from app.utils.security import PWDHasherFn
-
-
-class UserAlreadyExistsError(Exception):
-    pass
-
-
-class UserNotFoundError(Exception):
-    pass
 
 
 class GenericUserService:
@@ -37,7 +30,7 @@ class GenericUserService:
 
         if user_db_exists:
             message = "Unable to create account. Please try different credentials."
-            raise UserAlreadyExistsError(message)
+            raise AlreadyExistsError(message)
 
         user_db = UserDB(
             username=username,

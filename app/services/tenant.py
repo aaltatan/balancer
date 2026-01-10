@@ -3,14 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
-
-
-class TenantNotFoundError(Exception):
-    pass
-
-
-class TenantAlreadyExistsError(Exception):
-    pass
+from app.exceptions import AlreadyExistsError, NotFoundError
 
 
 class TenantService:
@@ -25,7 +18,7 @@ class TenantService:
 
         if not tenant:
             message = f"Tenant with uid '{uid}' not found."
-            raise TenantNotFoundError(message)
+            raise NotFoundError(message)
 
         return tenant
 
@@ -34,7 +27,7 @@ class TenantService:
 
         if not tenant:
             message = f"Tenant with slug '{slug}' not found."
-            raise TenantNotFoundError(message)
+            raise NotFoundError(message)
 
         return tenant
 
@@ -43,7 +36,7 @@ class TenantService:
 
         if tenant_db_exists:
             message = f"Tenant with uid '{name}' already exists."
-            raise TenantAlreadyExistsError(message)
+            raise AlreadyExistsError(message)
 
         tenant_db = TenantDB(name=name, valid_from=valid_from, valid_to=valid_to)
 
