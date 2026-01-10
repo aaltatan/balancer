@@ -1,4 +1,3 @@
-# ruff: noqa: B008
 from collections.abc import Callable
 from typing import Annotated, Literal
 
@@ -7,21 +6,21 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.core.config import Config, get_config
-from app.db import get_db
+from app.core.config import Config
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
 
+from .config import ConfigDI
+from .db import SessionDI
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/token", refreshUrl="api/auth/token/refresh")
 
-type _WrapperFn = Callable[[Session, str, Config], UserDB]
+type _WrapperFn = Callable[[Session, Config, str], UserDB]
 
 
 def get_active_user(token_type: Literal["access", "refresh"]) -> _WrapperFn:
     def wrapper(
-        db: Session = Depends(get_db),
-        token: str = Depends(oauth2_scheme),
-        config: Config = Depends(get_config),
+        db: SessionDI, config: ConfigDI, token: Annotated[str, Depends(oauth2_scheme)]
     ) -> UserDB:
         exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
