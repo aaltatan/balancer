@@ -2,10 +2,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import UserDB
 from app.db.tenant import TenantDB
-<<<<<<< HEAD
 from app.utils.hash import PWDHasherFn
-=======
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 
 from .generic_user import GenericUserService, UserAlreadyExistsError, UserNotFoundError
 from .tenant import TenantNotFoundError
@@ -43,7 +40,6 @@ class TenantSuperuserService:
 
         return query
 
-<<<<<<< HEAD
     def create(  # noqa: PLR0913
         self,
         username: str,
@@ -52,10 +48,6 @@ class TenantSuperuserService:
         plain_password: str,
         tenant_slug: str,
         hasher_fn: PWDHasherFn,
-=======
-    def create(
-        self, username: str, firstname: str, lastname: str, plain_password: str, tenant_slug: str
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
     ) -> UserDB:
         tenant = self._db.query(TenantDB).filter(TenantDB.slug == tenant_slug).first()
 
@@ -74,7 +66,6 @@ class TenantSuperuserService:
             raise UserAlreadyExistsError(message)
 
         return self._generic_service.create(
-<<<<<<< HEAD
             username,
             firstname,
             lastname,
@@ -82,9 +73,6 @@ class TenantSuperuserService:
             role="tenant-superuser",
             tenant=tenant,
             hasher_fn=hasher_fn,
-=======
-            username, firstname, lastname, plain_password, role="tenant-superuser", tenant=tenant
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         )
 
     def update(
@@ -105,12 +93,6 @@ class TenantSuperuserService:
         user_db = self.get_by_username(username)
         return self._generic_service.delete(user_db)
 
-<<<<<<< HEAD
     def reset_password(self, username: str, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
         user_db = self.get_by_username(username)
         return self._generic_service.reset_password(user_db, new_password, hasher_fn)
-=======
-    def reset_password(self, username: str, new_password: str) -> UserDB:
-        user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, new_password)
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225

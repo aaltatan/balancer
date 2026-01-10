@@ -13,11 +13,7 @@ from ._fields import PasswordFld
 
 
 def validate_username(value: str) -> str:
-<<<<<<< HEAD
     if not re.match(USERNAME_REGEX, value):
-=======
-    if not re.match(r"^[a-z]+(._)?[a-z0-9]+$", value):
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         message = (
             "Username must be lowercase letters or numbers only, "
             "if the username of two words, it must be like this: first.last or first_last, "

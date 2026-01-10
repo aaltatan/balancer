@@ -1,21 +1,13 @@
-<<<<<<< HEAD
 # ruff: noqa: PLR0913
-=======
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import jwt
 from sqlalchemy.orm import Session
 
-<<<<<<< HEAD
 from app.constants import USERNAME_TENANT_SLUG_REGEX
 from app.db.user import UserDB
 from app.utils.hash import PWDHasherFn, PWDVerifierFn
-=======
-from app.db.user import UserDB
-from app.utils.hash import hash_password, verify_password
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 from app.utils.text import split_username
 
 
@@ -23,26 +15,17 @@ class AuthenticationError(Exception):
     pass
 
 
-<<<<<<< HEAD
 def authenticate(
     db: Session, username: str, password: str, verifier_fn: PWDVerifierFn
 ) -> UserDB | None:
     user_username, tenant_slug = split_username(username, USERNAME_TENANT_SLUG_REGEX)
-=======
-def authenticate(db: Session, username: str, password: str) -> UserDB | None:
-    user_username, tenant_slug = split_username(username)
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 
     user = db.query(UserDB).filter(UserDB.username == user_username).first()
 
     none_checkers = [
         lambda: not user,
         lambda: user and not user.is_active,
-<<<<<<< HEAD
         lambda: user and not verifier_fn(password, user.hashed_password),
-=======
-        lambda: user and not verify_password(password, user.hashed_password),
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         lambda: user and not user.is_superuser and not tenant_slug,
         lambda: user and not user.is_superuser and user.tenant and user.tenant.slug != tenant_slug,
         lambda: user and not user.is_superuser and user.tenant and not user.tenant.is_active,
@@ -54,7 +37,6 @@ def authenticate(db: Session, username: str, password: str) -> UserDB | None:
     return user
 
 
-<<<<<<< HEAD
 def change_user_password(
     db: Session,
     user: UserDB,
@@ -68,24 +50,12 @@ def change_user_password(
         raise AuthenticationError(message)
 
     user.hashed_password = hasher_fn(new_password)
-=======
-def change_user_password(db: Session, user: UserDB, old_password: str, new_password: str) -> UserDB:
-    if not verify_password(old_password, user.hashed_password):
-        message = f"Invalid password for user '{user.username}'."
-        raise AuthenticationError(message)
-
-    user.hashed_password = hash_password(new_password)
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
     db.commit()
 
     return user
 
 
-<<<<<<< HEAD
 def create_access_token(
-=======
-def create_access_token(  # noqa: PLR0913
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
     data: dict[str, Any],
     expires_delta: int,
     expire_type: Literal["weeks", "days", "hours", "minutes"],

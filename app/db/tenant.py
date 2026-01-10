@@ -59,13 +59,7 @@ class TenantDB(Base):
 
     @hybrid_property
     def is_active(self) -> bool:
-<<<<<<< HEAD
         return not self.is_outdated and not self.disabled
-=======
-        return (
-            self.valid_from <= datetime.now(tz=timezone.utc).date() <= self.valid_to
-        ) and not self.disabled
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 
     @is_active.inplace.expression
     @classmethod

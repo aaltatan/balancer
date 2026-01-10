@@ -2,10 +2,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import Permission, TenantDB, UserDB
 from app.db.permission import PermissionDB
-<<<<<<< HEAD
 from app.utils.hash import PWDHasherFn
-=======
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 
 from .generic_user import GenericUserService, UserNotFoundError
 
@@ -85,21 +82,14 @@ class UserService:
         self._db.delete(query)
         self._db.commit()
 
-<<<<<<< HEAD
     def create(  # noqa: PLR0913
-=======
-    def create(
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         self,
         username: str,
         firstname: str,
         lastname: str,
         plain_password: str,
         permissions: set[Permission],
-<<<<<<< HEAD
         hasher_fn: PWDHasherFn,
-=======
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
     ) -> UserDB:
         return self._generic_service.create(
             username,
@@ -109,10 +99,7 @@ class UserService:
             role="tenant-user",
             permissions=permissions,
             tenant=self._tenant,
-<<<<<<< HEAD
             hasher_fn=hasher_fn,
-=======
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         )
 
     def update(
@@ -133,12 +120,6 @@ class UserService:
         user_db = self.get_by_username(username)
         return self._generic_service.delete(user_db)
 
-<<<<<<< HEAD
     def reset_password(self, username: str, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
         user_db = self.get_by_username(username)
         return self._generic_service.reset_password(user_db, new_password, hasher_fn)
-=======
-    def reset_password(self, username: str, new_password: str) -> UserDB:
-        user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, new_password)
->>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
