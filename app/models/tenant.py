@@ -26,12 +26,7 @@ class TenantBase(BaseModel):
 class _UserRead(BaseModel):
     uid: uuid.UUID
     fullname: str
-    is_active: bool
     role: str
-
-    is_superuser: bool
-    is_tenant_superuser: bool
-    is_tenant_user: bool
 
     created_at: datetime
     updated_at: datetime
@@ -39,13 +34,11 @@ class _UserRead(BaseModel):
 
 class TenantRead(TenantBase):
     uid: uuid.UUID
-    disabled: bool
     slug: str
 
     created_at: datetime
     updated_at: datetime
 
-    is_active: bool
     users: list[_UserRead]
 
 

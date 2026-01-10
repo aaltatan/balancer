@@ -5,6 +5,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
+from app.constants import USERNAME_REGEX
 from app.db.permission import Permission
 from app.db.user import Role
 
@@ -12,10 +13,12 @@ from ._fields import PasswordFld
 
 
 def validate_username(value: str) -> str:
-    if not re.match(r"^[a-z][a-z0-9_]+$", value):
+    if not re.match(USERNAME_REGEX, value):
         message = (
-            "Username must be lowercase letters, numbers, or underscores, "
-            "and must start with a letter."
+            "Username must be lowercase letters or numbers only, "
+            "if the username of two words, it must be like this: first.last or first_last, "
+            "it can't be more than two words with a underscore or dot in between, "
+            "and it must start with a letter."
         )
         raise ValueError(message)
 
@@ -58,12 +61,7 @@ class UserBase(BaseModel):
 class UserReadWithoutRelations(UserBase):
     uid: uuid.UUID
     fullname: str
-    is_active: bool
     role: Role
-
-    is_superuser: bool
-    is_tenant_superuser: bool
-    is_tenant_user: bool
 
     created_at: datetime
     updated_at: datetime
@@ -74,17 +72,14 @@ class _TenantRead(BaseModel):
     name: str
     valid_from: datetime
     valid_to: datetime
-    disabled: bool
     slug: str
 
     created_at: datetime
     updated_at: datetime
 
-    is_active: bool
-
 
 class UserReadWithTenant(UserReadWithoutRelations):
-    tenant: _TenantRead
+    tenant: _TenantRead | None = None
 
 
 class UserRead(UserReadWithTenant):
@@ -93,11 +88,10 @@ class UserRead(UserReadWithTenant):
 
 class UserCreate(UserBase):
     password: PasswordFld
-    permissions: set[Permission] = Field(
-        default_factory=set,
-        exclude=True,
-        examples=[[Permission.USERS_READ, Permission.USERS_CREATE]],
-    )
+    permissions: Annotated[
+        set[Permission],
+        Field(exclude=True, examples=[[Permission.USERS_READ, Permission.USERS_CREATE]]),
+    ] = set()
 
 
 class UserUpdate(BaseModel):

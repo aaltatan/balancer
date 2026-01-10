@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 from app.db import Base, get_db
 from app.main import app
+from app.utils.hash import hash_password, verify_password
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -14,7 +15,7 @@ engine = create_engine(
 TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-def get_test_db() -> Generator[Session, Any, None]:
+def override_get_db() -> Generator[Session, Any, None]:
     db = TestSessionLocal()
     try:
         yield db
@@ -22,7 +23,17 @@ def get_test_db() -> Generator[Session, Any, None]:
         db.close()
 
 
-app.dependency_overrides[get_db] = get_test_db
+def override_hash_password(password: str) -> str:
+    return f"hashed_{password}"
+
+
+def override_verify_password(password: str, hashed_password: str) -> bool:
+    return f"hashed_{password}" == hashed_password
+
+
+app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[hash_password] = override_hash_password
+app.dependency_overrides[verify_password] = override_verify_password
 
 
 @pytest.fixture(scope="session")

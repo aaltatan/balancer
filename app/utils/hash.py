@@ -1,4 +1,9 @@
+from collections.abc import Callable
+
 from bcrypt import checkpw, gensalt, hashpw
+
+type PWDHasherFn = Callable[[str], str]
+type PWDVerifierFn = Callable[[str, str], bool]
 
 
 def hash_password(password: str) -> str:

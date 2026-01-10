@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
@@ -12,22 +11,6 @@ class TenantNotFoundError(Exception):
 
 class TenantAlreadyExistsError(Exception):
     pass
-
-
-class CreateSchema(Protocol):
-    name: str
-    valid_from: datetime
-    valid_to: datetime
-
-    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
-
-
-class UpdateSchema(Protocol):
-    name: str | None = None
-    valid_from: datetime | None = None
-    valid_to: datetime | None = None
-
-    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class TenantService:
@@ -55,27 +38,40 @@ class TenantService:
 
         return tenant
 
-    def create(self, tenant: CreateSchema) -> TenantDB:
-        tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.name == tenant.name).first()
+    def create(self, name: str, valid_from: datetime, valid_to: datetime) -> TenantDB:
+        tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.name == name).first()
 
         if tenant_db_exists:
-            message = f"Tenant with uid '{tenant.name}' already exists."
+            message = f"Tenant with uid '{name}' already exists."
             raise TenantAlreadyExistsError(message)
 
-        tenant_db = TenantDB(**tenant.model_dump())
+        tenant_db = TenantDB(name=name, valid_from=valid_from, valid_to=valid_to)
 
         self._db.add(tenant_db)
         self._db.commit()
-        self._db.refresh(tenant_db)
 
         return tenant_db
 
-    def update(self, slug: str, tenant: UpdateSchema) -> TenantDB:
+    def update(
+        self,
+        slug: str,
+        name: str | None = None,
+        valid_from: datetime | None = None,
+        valid_to: datetime | None = None,
+    ) -> TenantDB:
         tenant_db = self.get_by_slug(slug)
 
-        for key, value in tenant.model_dump().items():
-            if value is not None:
-                setattr(tenant_db, key, value)
+        if not name and not valid_from and not valid_to:
+            return tenant_db
+
+        if name:
+            tenant_db.name = name
+
+        if valid_from:
+            tenant_db.valid_from = valid_from
+
+        if valid_to:
+            tenant_db.valid_to = valid_to
 
         self._db.commit()
         self._db.refresh(tenant_db)
@@ -90,7 +86,6 @@ class TenantService:
 
         tenant_db.disabled = False
         self._db.commit()
-        self._db.refresh(tenant_db)
 
         return tenant_db
 
@@ -102,7 +97,6 @@ class TenantService:
 
         tenant_db.disabled = True
         self._db.commit()
-        self._db.refresh(tenant_db)
 
         return tenant_db
 

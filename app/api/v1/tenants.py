@@ -1,56 +1,69 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 
-from app.db import get_db
+from app.api.dependencies.auth import RequireSuperuserDI
+from app.api.dependencies.db import SessionDI
 from app.models import Response
 from app.models.tenant import TenantCreate, TenantRead, TenantUpdate
 from app.services.tenant import TenantAlreadyExistsError, TenantNotFoundError, TenantService
 
 
-def get_tenant_service(db: Annotated[Session, Depends(get_db)]) -> TenantService:
+def get_tenant_service(db: SessionDI) -> TenantService:
     return TenantService(db)
 
 
-Service = Annotated[TenantService, Depends(get_tenant_service)]
+_TenantService = Annotated[TenantService, Depends(get_tenant_service)]
 
 router = APIRouter()
 
 
-@router.get("/", response_model=Response[list[TenantRead]])
-def get_tenants(service: Service):
+@router.get("/", response_model=Response[list[TenantRead]], dependencies=[RequireSuperuserDI])
+def get_all(service: _TenantService):
     return Response(data=service.get_all())
 
 
-@router.post("/", response_model=Response[TenantRead], status_code=status.HTTP_201_CREATED)
-def create_tenant(service: Service, tenant: TenantCreate):
+@router.post(
+    "/",
+    response_model=Response[TenantRead],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[RequireSuperuserDI],
+)
+def create(service: _TenantService, tenant: TenantCreate):
     try:
-        return Response(data=service.create(tenant))
+        return Response(data=service.create(tenant.name, tenant.valid_from, tenant.valid_to))
     except TenantAlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from None
 
 
-@router.get("/{slug}", response_model=Response[TenantRead])
-def get_tenant(service: Service, slug: str):
+@router.get("/{slug}", response_model=Response[TenantRead], dependencies=[RequireSuperuserDI])
+def get_by_slug(service: _TenantService, slug: str):
     try:
         return Response(data=service.get_by_slug(slug))
     except TenantNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.put("/{slug}", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED)
-def update_tenant(service: Service, slug: str, tenant: TenantUpdate):
+@router.put(
+    "/{slug}",
+    response_model=Response[TenantRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[RequireSuperuserDI],
+)
+def update(service: _TenantService, slug: str, tenant: TenantUpdate):
     try:
-        return Response(data=service.update(slug, tenant))
+        return Response(data=service.update(slug, tenant.name, tenant.valid_from, tenant.valid_to))
     except TenantNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
-    "/{slug}/activate", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED
+    "/{slug}/activate",
+    response_model=Response[TenantRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[RequireSuperuserDI],
 )
-def activate_tenant(service: Service, slug: str):
+def activate(service: _TenantService, slug: str):
     try:
         return Response(data=service.activate(slug))
     except TenantNotFoundError as e:
@@ -58,17 +71,20 @@ def activate_tenant(service: Service, slug: str):
 
 
 @router.patch(
-    "/{slug}/deactivate", response_model=Response[TenantRead], status_code=status.HTTP_202_ACCEPTED
+    "/{slug}/deactivate",
+    response_model=Response[TenantRead],
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[RequireSuperuserDI],
 )
-def deactivate_tenant(service: Service, slug: str):
+def deactivate(service: _TenantService, slug: str):
     try:
         return Response(data=service.deactivate(slug))
     except TenantNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.delete("/{slug}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tenant(service: Service, slug: str):
+@router.delete("/{slug}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireSuperuserDI])
+def delete(service: _TenantService, slug: str):
     try:
         service.delete(slug)
     except TenantNotFoundError as e:
