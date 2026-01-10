@@ -1,10 +1,15 @@
+<<<<<<< HEAD
 # ruff: noqa: DTZ001, FBT001
+=======
+# ruff: noqa: DTZ001
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 from datetime import datetime
 
 import pytest
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
 from app.services.auth import authenticate
+<<<<<<< HEAD
 from sqlalchemy.orm import Session
 
 
@@ -16,6 +21,12 @@ def mock_verify_password(password: str, hashed_password: str) -> bool:
     return f"hashed_{password}" == hashed_password
 
 
+=======
+from app.utils.hash import hash_password
+from sqlalchemy.orm import Session
+
+
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 @pytest.fixture(autouse=True, scope="module")
 def init_users_tenants(session: Session):
     active_tenant = TenantDB(
@@ -36,14 +47,22 @@ def init_users_tenants(session: Session):
             username="admin",
             firstname="Admin",
             lastname="Admin",
+<<<<<<< HEAD
             hashed_password=mock_hash_password("Abdullah@123"),
+=======
+            hashed_password=hash_password("Abdullah@123"),
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
             role="superuser",
         ),
         UserDB(
             username="activetenantuser",
             firstname="Admin",
             lastname="Admin",
+<<<<<<< HEAD
             hashed_password=mock_hash_password("Abdullah@123"),
+=======
+            hashed_password=hash_password("Abdullah@123"),
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
             role="tenant-superuser",
             tenant=active_tenant,
         ),
@@ -51,7 +70,11 @@ def init_users_tenants(session: Session):
             username="inactivetenantuser",
             firstname="Admin",
             lastname="Admin",
+<<<<<<< HEAD
             hashed_password=mock_hash_password("Abdullah@123"),
+=======
+            hashed_password=hash_password("Abdullah@123"),
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
             role="tenant-superuser",
             tenant=active_tenant,
             is_active=False,
@@ -60,7 +83,11 @@ def init_users_tenants(session: Session):
             username="outdatetenantuser",
             firstname="Admin",
             lastname="Admin",
+<<<<<<< HEAD
             hashed_password=mock_hash_password("Abdullah@123"),
+=======
+            hashed_password=hash_password("Abdullah@123"),
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
             role="tenant-superuser",
             tenant=outdate_tenant,
         ),
@@ -68,7 +95,11 @@ def init_users_tenants(session: Session):
             username="disabledtenantuser",
             firstname="Admin",
             lastname="Admin",
+<<<<<<< HEAD
             hashed_password=mock_hash_password("Abdullah@123"),
+=======
+            hashed_password=hash_password("Abdullah@123"),
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
             role="tenant-superuser",
             tenant=disabled_tenant,
         ),
@@ -106,6 +137,11 @@ def init_users_tenants(session: Session):
         ("disabledtenantuser@disabled", "Abdullah@1234", False),  # wrong password
     ],
 )
+<<<<<<< HEAD
 def test_authenticate(session: Session, username: str, password: str, expected: bool) -> None:
     user = authenticate(session, username, password, mock_verify_password)
+=======
+def test_authenticate(session: Session, username: str, password: str, expected: bool) -> None:  # noqa: FBT001
+    user = authenticate(session, username, password)
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
     assert bool(user) == expected

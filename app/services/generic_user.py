@@ -1,7 +1,11 @@
 from sqlalchemy.orm import Session
 
 from app.db import Permission, PermissionDB, Role, TenantDB, UserDB
+<<<<<<< HEAD
 from app.utils.hash import PWDHasherFn
+=======
+from app.utils.hash import hash_password
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 
 
 class MoreThanOneSuperuserError(Exception):
@@ -28,7 +32,10 @@ class GenericUserService:
         plain_password: str,
         *,
         role: Role,
+<<<<<<< HEAD
         hasher_fn: PWDHasherFn,
+=======
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         tenant: TenantDB | None = None,
         permissions: set[Permission] | None = None,
     ) -> UserDB:
@@ -48,7 +55,11 @@ class GenericUserService:
             firstname=firstname,
             lastname=lastname,
             role=role,
+<<<<<<< HEAD
             hashed_password=hasher_fn(plain_password),
+=======
+            hashed_password=hash_password(plain_password),
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
         )
 
         if permissions:
@@ -103,8 +114,13 @@ class GenericUserService:
         self._db.delete(user_db)
         self._db.commit()
 
+<<<<<<< HEAD
     def reset_password(self, user_db: UserDB, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
         user_db.hashed_password = hasher_fn(new_password)
+=======
+    def reset_password(self, user_db: UserDB, new_password: str) -> UserDB:
+        user_db.hashed_password = hash_password(new_password)
+>>>>>>> 8c9d9914ef549923d3df8012e10d83a1987b8225
 
         self._db.commit()
 
