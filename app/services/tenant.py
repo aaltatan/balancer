@@ -1,9 +1,13 @@
-from datetime import datetime
+from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
 from app.exceptions import AlreadyExistsError, NotFoundError
+
+
+class Schema(Protocol):
+    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class TenantService:
@@ -31,40 +35,27 @@ class TenantService:
 
         return tenant
 
-    def create(self, name: str, valid_from: datetime, valid_to: datetime) -> TenantDB:
+    def create(self, schema: Schema) -> TenantDB:
+        name = schema.model_dump().get("name", "")
         tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.name == name).first()
 
         if tenant_db_exists:
             message = f"Tenant with uid '{name}' already exists."
             raise AlreadyExistsError(message)
 
-        tenant_db = TenantDB(name=name, valid_from=valid_from, valid_to=valid_to)
+        tenant_db = TenantDB(**schema.model_dump())
 
         self._db.add(tenant_db)
         self._db.commit()
 
         return tenant_db
 
-    def update(
-        self,
-        slug: str,
-        name: str | None = None,
-        valid_from: datetime | None = None,
-        valid_to: datetime | None = None,
-    ) -> TenantDB:
+    def update(self, slug: str, schema: Schema) -> TenantDB:
         tenant_db = self.get_by_slug(slug)
 
-        if not name and not valid_from and not valid_to:
-            return tenant_db
-
-        if name:
-            tenant_db.name = name
-
-        if valid_from:
-            tenant_db.valid_from = valid_from
-
-        if valid_to:
-            tenant_db.valid_to = valid_to
+        for key, value in schema.model_dump().items():
+            if value is not None:
+                setattr(tenant_db, key, value)
 
         self._db.commit()
         self._db.refresh(tenant_db)

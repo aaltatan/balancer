@@ -33,15 +33,11 @@ def get_all(service: _UserService):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireTenantSuperuserDI],
 )
-def create(service: _UserService, user: UserCreate, hasher_fn: PWDHasherFnDI):
+def create(service: _UserService, create_schema: UserCreate, hasher_fn: PWDHasherFnDI):
     try:
         data = service.create(
-            user.username,
-            user.firstname,
-            user.lastname,
-            user.password.get_secret_value(),
-            user.permissions,
-            hasher_fn=hasher_fn,
+            schema=create_schema,
+            hashed_password=hasher_fn(create_schema.password.get_secret_value()),
         )
         return Response(data=data)
     except AlreadyExistsError as e:
@@ -64,9 +60,9 @@ def get_by_username(service: _UserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireTenantSuperuserDI],
 )
-def update(service: _UserService, username: str, user: UserUpdate):
+def update(service: _UserService, username: str, update_schema: UserUpdate):
     try:
-        return Response(data=service.update(username, user.firstname, user.lastname))
+        return Response(data=service.update(username, update_schema))
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
@@ -110,9 +106,7 @@ def reset_password(
     hasher_fn: PWDHasherFnDI,
 ):
     try:
-        data = service.reset_password(
-            username, schema.new_password.get_secret_value(), hasher_fn=hasher_fn
-        )
+        data = service.reset_password(username, hasher_fn(schema.new_password.get_secret_value()))
         return Response(data=data)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

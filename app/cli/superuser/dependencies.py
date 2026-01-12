@@ -1,5 +1,5 @@
 # ruff: noqa: B008
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from typing import Any
 
 import typer
@@ -12,7 +12,7 @@ from app.db import get_db
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
-from app.utils.security import PWDHasherFn, hash_password
+from app.utils.security import hash_password
 
 from .inputs import (
     FirstnameOpt,
@@ -24,7 +24,7 @@ from .inputs import (
 )
 
 
-def get_hasher_fn() -> PWDHasherFn:
+def get_hasher_fn() -> Callable[[str], str]:
     return hash_password
 
 

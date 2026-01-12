@@ -30,9 +30,9 @@ def get_all(service: _TenantService):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireSuperuserDI],
 )
-def create(service: _TenantService, tenant: TenantCreate):
+def create(service: _TenantService, create_schema: TenantCreate):
     try:
-        return Response(data=service.create(tenant.name, tenant.valid_from, tenant.valid_to))
+        return Response(data=service.create(create_schema))
     except AlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
 
@@ -51,9 +51,9 @@ def get_by_slug(service: _TenantService, slug: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def update(service: _TenantService, slug: str, tenant: TenantUpdate):
+def update(service: _TenantService, slug: str, update_schema: TenantUpdate):
     try:
-        return Response(data=service.update(slug, tenant.name, tenant.valid_from, tenant.valid_to))
+        return Response(data=service.update(slug, update_schema))
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 

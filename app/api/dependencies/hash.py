@@ -1,17 +1,18 @@
+from collections.abc import Callable
 from typing import Annotated
 
 from fastapi import Depends
 
-from app.utils.security import PWDHasherFn, PWDVerifierFn, hash_password, verify_password
+from app.utils.security import hash_password, verify_password
 
 
-def get_hasher_fn() -> PWDHasherFn:
+def get_hasher_fn() -> Callable[[str], str]:
     return hash_password
 
 
-def get_verifier_fn() -> PWDVerifierFn:
+def get_verifier_fn() -> Callable[[str, str], bool]:
     return verify_password
 
 
-PWDHasherFnDI = Annotated[PWDHasherFn, Depends(get_hasher_fn)]
-PWDVerifierFnDI = Annotated[PWDVerifierFn, Depends(get_verifier_fn)]
+PWDHasherFnDI = Annotated[Callable[[str], str], Depends(get_hasher_fn)]
+PWDVerifierFnDI = Annotated[Callable[[str, str], bool], Depends(get_verifier_fn)]

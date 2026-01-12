@@ -3,15 +3,17 @@ from sqlalchemy.orm import Query, Session
 from app.db import UserDB
 from app.db.tenant import TenantDB
 from app.exceptions import AlreadyExistsError, NotFoundError
-from app.utils.security import PWDHasherFn
 
-from .generic_user import GenericUserService
+from .generic_user import GenericUserService, UserCreate, UserUpdate
 
 
 class TenantSuperuserService:
-    def __init__(self, session: Session, generic_service: GenericUserService) -> None:
+    def __init__(
+        self, session: Session, generic_service: GenericUserService, tenant: TenantDB
+    ) -> None:
         self._db = session
         self._generic_service = generic_service
+        self._tenant = tenant
 
     def get_all(self) -> list[UserDB]:
         return self._db.query(UserDB).filter(UserDB.is_tenant_superuser).all()
@@ -19,7 +21,11 @@ class TenantSuperuserService:
     def get_by_username(self, username: str) -> UserDB:
         user = (
             self._db.query(UserDB)
-            .filter(UserDB.username == username, UserDB.is_tenant_superuser)
+            .filter(
+                UserDB.username == username,
+                UserDB.is_tenant_superuser,
+                UserDB.tenant == self._tenant,
+            )
             .first()
         )
 
@@ -40,24 +46,10 @@ class TenantSuperuserService:
 
         return query
 
-    def create(  # noqa: PLR0913
-        self,
-        username: str,
-        firstname: str,
-        lastname: str,
-        plain_password: str,
-        tenant_slug: str,
-        hasher_fn: PWDHasherFn,
-    ) -> UserDB:
-        tenant = self._db.query(TenantDB).filter(TenantDB.slug == tenant_slug).first()
-
-        if not tenant:
-            message = f"Tenant with slug '{tenant_slug}' not found."
-            raise NotFoundError(message)
-
+    def create(self, *, schema: UserCreate, hashed_password: str) -> UserDB:
         user_db_exists = (
             self._db.query(UserDB)
-            .filter(UserDB.username == username, UserDB.tenant == tenant)
+            .filter(UserDB.username == schema.username, UserDB.tenant == self._tenant)
             .first()
         )
 
@@ -66,20 +58,15 @@ class TenantSuperuserService:
             raise AlreadyExistsError(message)
 
         return self._generic_service.create(
-            username,
-            firstname,
-            lastname,
-            plain_password,
+            schema=schema,
+            hashed_password=hashed_password,
             role="tenant-superuser",
-            tenant=tenant,
-            hasher_fn=hasher_fn,
+            tenant=self._tenant,
         )
 
-    def update(
-        self, username: str, firstname: str | None = None, lastname: str | None = None
-    ) -> UserDB:
+    def update(self, username: str, schema: UserUpdate) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.update(user_db, firstname, lastname)
+        return self._generic_service.update(user_db, schema)
 
     def activate(self, username: str) -> UserDB:
         user_db = self.get_by_username(username)
@@ -93,6 +80,6 @@ class TenantSuperuserService:
         user_db = self.get_by_username(username)
         return self._generic_service.delete(user_db)
 
-    def reset_password(self, username: str, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
+    def reset_password(self, username: str, hashed_password: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, new_password, hasher_fn)
+        return self._generic_service.reset_password(user_db, hashed_password)

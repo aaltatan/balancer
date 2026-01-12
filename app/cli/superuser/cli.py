@@ -1,4 +1,6 @@
 # ruff: noqa: B008
+from collections.abc import Callable
+
 import typer
 from rich.console import Console
 from typer_di import Depends, TyperDI
@@ -6,7 +8,6 @@ from typer_di import Depends, TyperDI
 from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.superuser import SuperuserService
-from app.utils.security import PWDHasherFn
 
 from .dependencies import (
     get_console,
@@ -43,14 +44,14 @@ def list_superusers(
 @app.command(name="create")
 def create_superuser(
     console: Console = Depends(get_console),
-    superuser: UserCreate = Depends(get_create_schema),
+    create_schema: UserCreate = Depends(get_create_schema),
     superuser_service: SuperuserService = Depends(get_superuser_service),
-    hasher_fn: PWDHasherFn = Depends(get_hasher_fn),
+    hasher_fn: Callable[[str], str] = Depends(get_hasher_fn),
 ) -> None:
     try:
-        password = superuser.password.get_secret_value()
         superuser_db = superuser_service.create(
-            superuser.username, superuser.firstname, superuser.lastname, password, hasher_fn
+            schema=create_schema,
+            hashed_password=hasher_fn(create_schema.password.get_secret_value()),
         )
     except AlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
@@ -64,11 +65,11 @@ def create_superuser(
 def update_superuser(
     username: UsernameArg,
     console: Console = Depends(get_console),
-    superuser: UserUpdate = Depends(get_user_update_schema),
+    update_schema: UserUpdate = Depends(get_user_update_schema),
     superuser_service: SuperuserService = Depends(get_superuser_service),
 ):
     try:
-        superuser_db = superuser_service.update(username, superuser.firstname, superuser.lastname)
+        superuser_db = superuser_service.update(username, update_schema)
     except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e
 
@@ -129,11 +130,11 @@ def reset_superuser_password(
     console: Console = Depends(get_console),
     superuser_service: SuperuserService = Depends(get_superuser_service),
     schema: ResetPassword = Depends(get_reset_password_schema),
-    hasher_fn: PWDHasherFn = Depends(get_hasher_fn),
+    hasher_fn: Callable[[str], str] = Depends(get_hasher_fn),
 ):
     try:
         superuser = superuser_service.reset_password(
-            username, schema.new_password.get_secret_value(), hasher_fn
+            username, hasher_fn(schema.new_password.get_secret_value())
         )
     except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e

@@ -1,11 +1,12 @@
 # ruff: noqa: PLR0913, S106
+from collections.abc import Callable
 from typing import TypedDict
 
 from sqlalchemy.orm import Session
 
 from app.db.user import UserDB
 from app.exceptions import AuthenticationError
-from app.utils.security import PWDHasherFn, PWDVerifierFn, create_access_token
+from app.utils.security import create_access_token
 
 
 class AccessToken(TypedDict):
@@ -53,15 +54,14 @@ def change_user_password(
     db: Session,
     user: UserDB,
     old_password: str,
-    new_password: str,
-    verifier_fn: PWDVerifierFn,
-    hasher_fn: PWDHasherFn,
+    new_hashed_password: str,
+    verifier_fn: Callable[[str, str], bool],
 ) -> UserDB:
     if not verifier_fn(old_password, user.hashed_password):
         message = f"Invalid password for user '{user.username}'."
         raise AuthenticationError(message)
 
-    user.hashed_password = hasher_fn(new_password)
+    user.hashed_password = new_hashed_password
     db.commit()
 
     return user

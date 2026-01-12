@@ -1,12 +1,8 @@
-from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import jwt
 from bcrypt import checkpw, gensalt, hashpw
-
-type PWDHasherFn = Callable[[str], str]
-type PWDVerifierFn = Callable[[str, str], bool]
 
 
 def hash_password(password: str) -> str:

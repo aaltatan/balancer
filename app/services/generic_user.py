@@ -1,27 +1,35 @@
+from typing import Any, Protocol
+
 from sqlalchemy.orm import Session
 
-from app.db import Permission, PermissionDB, Role, TenantDB, UserDB
+from app.db import PermissionDB, Role, TenantDB, UserDB
 from app.exceptions import AlreadyExistsError
-from app.utils.security import PWDHasherFn
+
+
+class UserCreate(Protocol):
+    username: str
+    permissions: set[Any]
+
+    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
+
+
+class UserUpdate(Protocol):
+    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
 class GenericUserService:
     def __init__(self, session: Session) -> None:
         self._db = session
 
-    def create(  # noqa: PLR0913
+    def create(
         self,
-        username: str,
-        firstname: str,
-        lastname: str,
-        plain_password: str,
         *,
+        schema: UserCreate,
+        hashed_password: str,
         role: Role,
-        hasher_fn: PWDHasherFn,
         tenant: TenantDB | None = None,
-        permissions: set[Permission] | None = None,
     ) -> UserDB:
-        user_db_exists_query = self._db.query(UserDB).filter(UserDB.username == username)
+        user_db_exists_query = self._db.query(UserDB).filter(UserDB.username == schema.username)
 
         if tenant:
             user_db_exists_query = user_db_exists_query.filter(UserDB.tenant == tenant)
@@ -32,13 +40,11 @@ class GenericUserService:
             message = "Unable to create account. Please try different credentials."
             raise AlreadyExistsError(message)
 
-        user_db = UserDB(
-            username=username,
-            firstname=firstname,
-            lastname=lastname,
-            role=role,
-            hashed_password=hasher_fn(plain_password),
-        )
+        schema_dict = schema.model_dump()
+
+        permissions = schema_dict.pop("permissions")
+
+        user_db = UserDB(**schema_dict, role=role, hashed_password=hashed_password)
 
         if permissions:
             user_db.permissions = set(
@@ -53,17 +59,10 @@ class GenericUserService:
 
         return user_db
 
-    def update(
-        self, user_db: UserDB, firstname: str | None = None, lastname: str | None = None
-    ) -> UserDB:
-        if not firstname and not lastname:
-            return user_db
-
-        if firstname:
-            user_db.firstname = firstname
-
-        if lastname:
-            user_db.lastname = lastname
+    def update(self, user_db: UserDB, schema: UserUpdate) -> UserDB:
+        for key, value in schema.model_dump().items():
+            if value is not None:
+                setattr(user_db, key, value)
 
         self._db.commit()
         self._db.refresh(user_db)
@@ -92,8 +91,8 @@ class GenericUserService:
         self._db.delete(user_db)
         self._db.commit()
 
-    def reset_password(self, user_db: UserDB, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
-        user_db.hashed_password = hasher_fn(new_password)
+    def reset_password(self, user_db: UserDB, hashed_password: str) -> UserDB:
+        user_db.hashed_password = hashed_password
 
         self._db.commit()
 

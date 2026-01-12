@@ -2,9 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.db import UserDB
 from app.exceptions import NotFoundError
-from app.utils.security import PWDHasherFn
 
-from .generic_user import GenericUserService
+from .generic_user import GenericUserService, UserCreate, UserUpdate
 
 
 class SuperuserService:
@@ -28,23 +27,14 @@ class SuperuserService:
 
         return user
 
-    def create(
-        self,
-        username: str,
-        firstname: str,
-        lastname: str,
-        plain_password: str,
-        hasher_fn: PWDHasherFn,
-    ) -> UserDB:
+    def create(self, *, schema: UserCreate, hashed_password: str) -> UserDB:
         return self._service.create(
-            username, firstname, lastname, plain_password, role="superuser", hasher_fn=hasher_fn
+            schema=schema, hashed_password=hashed_password, role="superuser"
         )
 
-    def update(
-        self, username: str, firstname: str | None = None, lastname: str | None = None
-    ) -> UserDB:
+    def update(self, username: str, schema: UserUpdate) -> UserDB:
         superuser = self._get_superuser(username)
-        return self._service.update(superuser, firstname, lastname)
+        return self._service.update(superuser, schema)
 
     def activate(self, username: str) -> UserDB:
         superuser = self._get_superuser(username)
@@ -58,6 +48,6 @@ class SuperuserService:
         superuser = self._get_superuser(username)
         return self._service.delete(superuser)
 
-    def reset_password(self, username: str, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
+    def reset_password(self, username: str, hashed_password: str) -> UserDB:
         superuser = self._get_superuser(username)
-        return self._service.reset_password(superuser, new_password, hasher_fn)
+        return self._service.reset_password(superuser, hashed_password)

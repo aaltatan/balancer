@@ -3,9 +3,8 @@ from sqlalchemy.orm import Query, Session
 from app.db import Permission, TenantDB, UserDB
 from app.db.permission import PermissionDB
 from app.exceptions import NotFoundError
-from app.utils.security import PWDHasherFn
 
-from .generic_user import GenericUserService
+from .generic_user import GenericUserService, UserCreate, UserUpdate
 
 
 class UserService:
@@ -83,31 +82,14 @@ class UserService:
         self._db.delete(query)
         self._db.commit()
 
-    def create(  # noqa: PLR0913
-        self,
-        username: str,
-        firstname: str,
-        lastname: str,
-        plain_password: str,
-        permissions: set[Permission],
-        hasher_fn: PWDHasherFn,
-    ) -> UserDB:
+    def create(self, *, schema: UserCreate, hashed_password: str) -> UserDB:
         return self._generic_service.create(
-            username,
-            firstname,
-            lastname,
-            plain_password=plain_password,
-            role="tenant-user",
-            permissions=permissions,
-            tenant=self._tenant,
-            hasher_fn=hasher_fn,
+            schema=schema, hashed_password=hashed_password, role="tenant-user", tenant=self._tenant
         )
 
-    def update(
-        self, username: str, firstname: str | None = None, lastname: str | None = None
-    ) -> UserDB:
+    def update(self, username: str, schema: UserUpdate) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.update(user_db, firstname, lastname)
+        return self._generic_service.update(user_db, schema)
 
     def activate(self, username: str) -> UserDB:
         user_db = self.get_by_username(username)
@@ -121,6 +103,6 @@ class UserService:
         user_db = self.get_by_username(username)
         return self._generic_service.delete(user_db)
 
-    def reset_password(self, username: str, new_password: str, hasher_fn: PWDHasherFn) -> UserDB:
+    def reset_password(self, username: str, hashed_password: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, new_password, hasher_fn)
+        return self._generic_service.reset_password(user_db, hashed_password)

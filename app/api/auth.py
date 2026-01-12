@@ -54,9 +54,8 @@ def change_password(
             db=db,
             user=user,
             old_password=schema.old_password.get_secret_value(),
-            new_password=schema.new_password.get_secret_value(),
+            new_hashed_password=hasher_fn(schema.new_password.get_secret_value()),
             verifier_fn=verifier_fn,
-            hasher_fn=hasher_fn,
         )
     except AuthenticationError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
