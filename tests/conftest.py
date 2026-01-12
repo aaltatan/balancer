@@ -2,9 +2,9 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
+from app.api.dependencies.hash import get_hasher_fn, get_verifier_fn
 from app.db import Base, get_db
 from app.main import app
-from app.utils.security import hash_password, verify_password
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -32,8 +32,8 @@ def override_verify_password(password: str, hashed_password: str) -> bool:
 
 
 app.dependency_overrides[get_db] = override_get_db
-app.dependency_overrides[hash_password] = override_hash_password
-app.dependency_overrides[verify_password] = override_verify_password
+app.dependency_overrides[get_hasher_fn] = override_hash_password
+app.dependency_overrides[get_verifier_fn] = override_verify_password
 
 
 @pytest.fixture(scope="session")
