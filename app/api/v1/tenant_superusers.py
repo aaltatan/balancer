@@ -15,8 +15,10 @@ from app.services.tenant_superuser import TenantSuperuserService
 router = APIRouter()
 
 
-def get_tenant_superuser_service(db: SessionDI, tenant: ActiveTenantDI) -> TenantSuperuserService:
-    return TenantSuperuserService(db, GenericUserService(db), tenant)
+def get_tenant_superuser_service(
+    db: SessionDI, tenant: ActiveTenantDI, hasher_fn: PWDHasherFnDI
+) -> TenantSuperuserService:
+    return TenantSuperuserService(db, GenericUserService(db, hasher_fn), tenant)
 
 
 _TenantSuperuserService = Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)]
@@ -33,14 +35,11 @@ def get_all(service: _TenantSuperuserService):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireSuperuserDI],
 )
-def create(
-    service: _TenantSuperuserService,
-    create_schema: Annotated[UserCreate, Body()],
-    hasher_fn: PWDHasherFnDI,
-):
+def create(service: _TenantSuperuserService, create_schema: Annotated[UserCreate, Body()]):
     try:
-        hashed_password = hasher_fn(create_schema.password.get_secret_value())
-        data = service.create(schema=create_schema, hashed_password=hashed_password)
+        data = service.create(
+            schema=create_schema, plain_password=create_schema.password.get_secret_value()
+        )
         return Response(data=data)
     except AlreadyExistsError as e:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
@@ -99,11 +98,9 @@ def deactivate(service: _TenantSuperuserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def reset_password(
-    service: _TenantSuperuserService, username: str, schema: ResetPassword, hasher_fn: PWDHasherFnDI
-):
+def reset_password(service: _TenantSuperuserService, username: str, schema: ResetPassword):
     try:
-        data = service.reset_password(username, hasher_fn(schema.new_password.get_secret_value()))
+        data = service.reset_password(username, schema.new_password.get_secret_value())
         return Response(data=data)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

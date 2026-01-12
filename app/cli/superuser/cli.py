@@ -1,6 +1,4 @@
 # ruff: noqa: B008
-from collections.abc import Callable
-
 import typer
 from rich.console import Console
 from typer_di import Depends, TyperDI
@@ -12,7 +10,6 @@ from app.services.superuser import SuperuserService
 from .dependencies import (
     get_console,
     get_create_schema,
-    get_hasher_fn,
     get_reset_password_schema,
     get_superuser_service,
     get_user_update_schema,
@@ -46,12 +43,10 @@ def create_superuser(
     console: Console = Depends(get_console),
     create_schema: UserCreate = Depends(get_create_schema),
     superuser_service: SuperuserService = Depends(get_superuser_service),
-    hasher_fn: Callable[[str], str] = Depends(get_hasher_fn),
 ) -> None:
     try:
         superuser_db = superuser_service.create(
-            schema=create_schema,
-            hashed_password=hasher_fn(create_schema.password.get_secret_value()),
+            schema=create_schema, plain_password=create_schema.password.get_secret_value()
         )
     except AlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
@@ -130,11 +125,10 @@ def reset_superuser_password(
     console: Console = Depends(get_console),
     superuser_service: SuperuserService = Depends(get_superuser_service),
     schema: ResetPassword = Depends(get_reset_password_schema),
-    hasher_fn: Callable[[str], str] = Depends(get_hasher_fn),
 ):
     try:
         superuser = superuser_service.reset_password(
-            username, hasher_fn(schema.new_password.get_secret_value())
+            username, schema.new_password.get_secret_value()
         )
     except NotFoundError as e:
         raise typer.BadParameter(str(e)) from e

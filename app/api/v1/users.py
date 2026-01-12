@@ -15,8 +15,10 @@ from app.services.user import UserService
 router = APIRouter()
 
 
-def get_user_service(db: SessionDI, tenant: ActiveTenantDI) -> UserService:
-    return UserService(db, GenericUserService(db), tenant)
+def get_user_service(
+    db: SessionDI, tenant: ActiveTenantDI, hasher_fn: PWDHasherFnDI
+) -> UserService:
+    return UserService(db, GenericUserService(db, hasher_fn), tenant)
 
 
 _UserService = Annotated[UserService, Depends(get_user_service)]
@@ -33,11 +35,10 @@ def get_all(service: _UserService):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireTenantSuperuserDI],
 )
-def create(service: _UserService, create_schema: UserCreate, hasher_fn: PWDHasherFnDI):
+def create(service: _UserService, create_schema: UserCreate):
     try:
         data = service.create(
-            schema=create_schema,
-            hashed_password=hasher_fn(create_schema.password.get_secret_value()),
+            schema=create_schema, plain_password=create_schema.password.get_secret_value()
         )
         return Response(data=data)
     except AlreadyExistsError as e:
@@ -99,14 +100,9 @@ def deactivate(service: _UserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireTenantSuperuserDI],
 )
-def reset_password(
-    service: _UserService,
-    username: str,
-    schema: Annotated[ResetPassword, Form()],
-    hasher_fn: PWDHasherFnDI,
-):
+def reset_password(service: _UserService, username: str, schema: Annotated[ResetPassword, Form()]):
     try:
-        data = service.reset_password(username, hasher_fn(schema.new_password.get_secret_value()))
+        data = service.reset_password(username, schema.new_password.get_secret_value())
         return Response(data=data)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

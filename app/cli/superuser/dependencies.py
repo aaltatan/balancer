@@ -28,9 +28,12 @@ def get_hasher_fn() -> Callable[[str], str]:
     return hash_password
 
 
-def get_superuser_service(db: Generator[Session, Any, None] = Depends(get_db)) -> SuperuserService:
+def get_superuser_service(
+    db: Generator[Session, Any, None] = Depends(get_db),
+    hasher_fn: Callable[[str], str] = Depends(get_hasher_fn),
+) -> SuperuserService:
     session = next(db)
-    return SuperuserService(session, GenericUserService(session))
+    return SuperuserService(session, GenericUserService(session, hasher_fn))
 
 
 def get_create_schema(

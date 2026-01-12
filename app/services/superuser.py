@@ -27,9 +27,9 @@ class SuperuserService:
 
         return user
 
-    def create(self, *, schema: UserCreate, hashed_password: str) -> UserDB:
+    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
         return self._service.create(
-            schema=schema, hashed_password=hashed_password, role="superuser"
+            schema=schema, plain_password=plain_password, role="superuser"
         )
 
     def update(self, username: str, schema: UserUpdate) -> UserDB:
@@ -48,6 +48,6 @@ class SuperuserService:
         superuser = self._get_superuser(username)
         return self._service.delete(superuser)
 
-    def reset_password(self, username: str, hashed_password: str) -> UserDB:
+    def reset_password(self, username: str, plain_password: str) -> UserDB:
         superuser = self._get_superuser(username)
-        return self._service.reset_password(superuser, hashed_password)
+        return self._service.reset_password(superuser, plain_password)

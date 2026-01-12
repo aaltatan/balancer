@@ -46,7 +46,7 @@ class TenantSuperuserService:
 
         return query
 
-    def create(self, *, schema: UserCreate, hashed_password: str) -> UserDB:
+    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
         user_db_exists = (
             self._db.query(UserDB)
             .filter(UserDB.username == schema.username, UserDB.tenant == self._tenant)
@@ -59,7 +59,7 @@ class TenantSuperuserService:
 
         return self._generic_service.create(
             schema=schema,
-            hashed_password=hashed_password,
+            plain_password=plain_password,
             role="tenant-superuser",
             tenant=self._tenant,
         )
@@ -80,6 +80,6 @@ class TenantSuperuserService:
         user_db = self.get_by_username(username)
         return self._generic_service.delete(user_db)
 
-    def reset_password(self, username: str, hashed_password: str) -> UserDB:
+    def reset_password(self, username: str, plain_password: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, hashed_password)
+        return self._generic_service.reset_password(user_db, plain_password)

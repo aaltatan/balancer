@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
@@ -18,14 +19,15 @@ class UserUpdate(Protocol):
 
 
 class GenericUserService:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, hasher_fn: Callable[[str], str]) -> None:
         self._db = session
+        self._hasher_fn = hasher_fn
 
     def create(
         self,
         *,
         schema: UserCreate,
-        hashed_password: str,
+        plain_password: str,
         role: Role,
         tenant: TenantDB | None = None,
     ) -> UserDB:
@@ -44,7 +46,7 @@ class GenericUserService:
 
         permissions = schema_dict.pop("permissions")
 
-        user_db = UserDB(**schema_dict, role=role, hashed_password=hashed_password)
+        user_db = UserDB(**schema_dict, role=role, hashed_password=self._hasher_fn(plain_password))
 
         if permissions:
             user_db.permissions = set(
@@ -91,8 +93,8 @@ class GenericUserService:
         self._db.delete(user_db)
         self._db.commit()
 
-    def reset_password(self, user_db: UserDB, hashed_password: str) -> UserDB:
-        user_db.hashed_password = hashed_password
+    def reset_password(self, user_db: UserDB, plain_password: str) -> UserDB:
+        user_db.hashed_password = self._hasher_fn(plain_password)
 
         self._db.commit()
 

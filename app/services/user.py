@@ -82,9 +82,9 @@ class UserService:
         self._db.delete(query)
         self._db.commit()
 
-    def create(self, *, schema: UserCreate, hashed_password: str) -> UserDB:
+    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
         return self._generic_service.create(
-            schema=schema, hashed_password=hashed_password, role="tenant-user", tenant=self._tenant
+            schema=schema, plain_password=plain_password, role="tenant-user", tenant=self._tenant
         )
 
     def update(self, username: str, schema: UserUpdate) -> UserDB:
@@ -103,6 +103,6 @@ class UserService:
         user_db = self.get_by_username(username)
         return self._generic_service.delete(user_db)
 
-    def reset_password(self, username: str, hashed_password: str) -> UserDB:
+    def reset_password(self, username: str, plain_password: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, hashed_password)
+        return self._generic_service.reset_password(user_db, plain_password)
