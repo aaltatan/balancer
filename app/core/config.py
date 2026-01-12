@@ -12,8 +12,8 @@ class Config(BaseSettings):
 
     db_url: str = ""
 
-    debug: bool = False
-    echo_sql: bool = False
+    debug: bool = True
+    echo_sql: bool = True
 
     jwt_secret_key: str = ""
     jwt_algorithm: str = ""
