@@ -30,7 +30,7 @@ def get_all(service: _TenantSuperuserService):
 
 
 @router.post(
-    "/{tenant_slug}",
+    "/",
     response_model=Response[UserRead],
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireSuperuserDI],
