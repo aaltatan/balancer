@@ -44,7 +44,7 @@ class GenericUserService:
 
         schema_dict = schema.model_dump()
 
-        permissions = schema_dict.pop("permissions")
+        permissions = schema_dict.pop("permissions", None)
 
         user_db = UserDB(**schema_dict, role=role, hashed_password=self._hasher_fn(plain_password))
 
