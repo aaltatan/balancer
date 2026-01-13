@@ -44,7 +44,7 @@ def login_superuser(
     )
 
 
-@router.post("/{tenant_slug}/token", response_model=AccessToken)
+@router.post("/{tenant_code}/token", response_model=AccessToken)
 def login_tenant_user(
     config: ConfigDI,
     session: SessionDI,

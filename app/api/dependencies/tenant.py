@@ -7,8 +7,8 @@ from app.db.tenant import TenantDB
 from .db import SessionDI
 
 
-def get_active_tenant(db: SessionDI, tenant_slug: Annotated[str, Path()]) -> TenantDB:
-    tenant = db.query(TenantDB).filter(TenantDB.slug == tenant_slug).first()
+def get_active_tenant(db: SessionDI, tenant_code: Annotated[str, Path()]) -> TenantDB:
+    tenant = db.query(TenantDB).filter(TenantDB.code == tenant_code).first()
 
     if not tenant:
         raise HTTPException(

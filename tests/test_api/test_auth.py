@@ -49,11 +49,11 @@ def init_authenticated_users(session: Session):
 
 
 def get_access_token(
-    client: TestClient, username: str, password: str, tenant_slug: str | None = None
+    client: TestClient, username: str, password: str, tenant_code: str | None = None
 ) -> str:
-    slug = tenant_slug or "superuser"
+    code = tenant_code or "superuser"
     response = client.post(
-        f"/api/auth/{slug}/token", data={"username": username, "password": password}
+        f"/api/auth/{code}/token", data={"username": username, "password": password}
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -88,7 +88,7 @@ def test_authenticate_tenant_superuser(client: TestClient) -> None:
 def test_deactivate_user_after_getting_access_token(client: TestClient, session: Session) -> None:
     access_token = get_access_token(client, "admin", "admin", "active")
 
-    tenant = session.query(TenantDB).filter(TenantDB.slug == "active").first()
+    tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
 
     assert bool(user)
@@ -105,7 +105,7 @@ def test_deactivate_user_after_getting_access_token(client: TestClient, session:
 def test_deactivate_tenant_after_getting_access_token(client: TestClient, session: Session) -> None:
     access_token = get_access_token(client, "admin", "admin", "active")
 
-    tenant = session.query(TenantDB).filter(TenantDB.slug == "active").first()
+    tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
 
     assert bool(user)

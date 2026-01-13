@@ -69,9 +69,8 @@ class UserReadWithoutRelations(UserBase):
 class _TenantRead(BaseModel):
     uid: uuid.UUID
     name: str
-    valid_from: datetime
-    valid_to: datetime
-    slug: str
+    code: str
+    valid_until: datetime
 
     created_at: datetime
     updated_at: datetime

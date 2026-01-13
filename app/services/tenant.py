@@ -26,21 +26,21 @@ class TenantService:
 
         return tenant
 
-    def get_by_slug(self, slug: str) -> TenantDB:
-        tenant = self._db.query(TenantDB).filter(TenantDB.slug == slug).first()
+    def get_by_code(self, code: str) -> TenantDB:
+        tenant = self._db.query(TenantDB).filter(TenantDB.code == code).first()
 
         if not tenant:
-            message = f"Tenant with slug '{slug}' not found."
+            message = f"Tenant with code '{code}' not found."
             raise NotFoundError(message)
 
         return tenant
 
     def create(self, schema: Schema) -> TenantDB:
-        name = schema.model_dump().get("name", "")
-        tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.name == name).first()
+        code = schema.model_dump()["code"]
+        tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.code == code).first()
 
         if tenant_db_exists:
-            message = f"Tenant with uid '{name}' already exists."
+            message = f"Tenant with uid '{code}' already exists."
             raise AlreadyExistsError(message)
 
         tenant_db = TenantDB(**schema.model_dump())
@@ -50,8 +50,8 @@ class TenantService:
 
         return tenant_db
 
-    def update(self, slug: str, schema: Schema) -> TenantDB:
-        tenant_db = self.get_by_slug(slug)
+    def update(self, code: str, schema: Schema) -> TenantDB:
+        tenant_db = self.get_by_code(code)
 
         for key, value in schema.model_dump().items():
             if value is not None:
@@ -62,8 +62,8 @@ class TenantService:
 
         return tenant_db
 
-    def activate(self, slug: str) -> TenantDB:
-        tenant_db = self.get_by_slug(slug)
+    def activate(self, code: str) -> TenantDB:
+        tenant_db = self.get_by_code(code)
 
         if not tenant_db.disabled:
             return tenant_db
@@ -73,8 +73,8 @@ class TenantService:
 
         return tenant_db
 
-    def deactivate(self, slug: str) -> TenantDB:
-        tenant_db = self.get_by_slug(slug)
+    def deactivate(self, code: str) -> TenantDB:
+        tenant_db = self.get_by_code(code)
 
         if tenant_db.disabled:
             return tenant_db
@@ -84,7 +84,7 @@ class TenantService:
 
         return tenant_db
 
-    def delete(self, slug: str) -> None:
-        tenant_db = self.get_by_slug(slug)
+    def delete(self, code: str) -> None:
+        tenant_db = self.get_by_code(code)
         self._db.delete(tenant_db)
         self._db.commit()

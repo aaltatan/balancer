@@ -2,20 +2,9 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from slugify import slugify
-from sqlalchemy import (
-    DATE,
-    TIMESTAMP,
-    UUID,
-    Boolean,
-    ColumnElement,
-    Connection,
-    String,
-    event,
-    func,
-)
+from sqlalchemy import DATE, TIMESTAMP, UUID, Boolean, ColumnElement, String, func
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, Mapper, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.utils.timezone import get_default_tz_now
 
@@ -31,13 +20,16 @@ class TenantDB(Base):
     uid: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
     )
-    name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(255))
+    code: Mapped[str] = mapped_column(String(4), unique=True, index=True)
+    valid_until: Mapped[datetime] = mapped_column(DATE)
     disabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    valid_from: Mapped[datetime] = mapped_column(DATE)
-    valid_to: Mapped[datetime] = mapped_column(DATE)
-
-    slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    address: Mapped[str] = mapped_column(String(255), default="")
+    city: Mapped[str] = mapped_column(String(255), default="")
+    country: Mapped[str] = mapped_column(String(255), default="")
+    phone: Mapped[str] = mapped_column(String(255), default="")
+    notes: Mapped[str] = mapped_column(String(255), default="")
 
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP, default=get_default_tz_now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -49,13 +41,12 @@ class TenantDB(Base):
     @hybrid_property
     def is_outdated(self) -> bool:
         now = datetime.now(tz=timezone.utc).date()
-        return now < self.valid_from or now > self.valid_to
+        return now > self.valid_until
 
     @is_outdated.inplace.expression
     @classmethod
     def _is_outdated(cls) -> ColumnElement[bool]:
-        now = func.current_date()
-        return (cls.valid_from <= now) & (now <= cls.valid_to)
+        return func.current_date() <= cls.valid_until
 
     @hybrid_property
     def is_active(self) -> bool:
@@ -70,19 +61,10 @@ class TenantDB(Base):
         return (
             "<TenantDB("
             f"name={self.name}, "
-            f"slug={self.slug}, "
+            f"code={self.code}, "
+            f"is_outdated={self.is_outdated}, "
             f"disabled={self.disabled}, "
             f"is_active={self.is_active}, "
-            f"valid_from={self.valid_from}, "
-            f"valid_to={self.valid_to}"
+            f"valid_until={self.valid_until}"
             ")>"
         )
-
-
-def set_tenant_slugify(mapper: Mapper, connection: Connection, target: TenantDB) -> None:  # noqa: ARG001
-    if target.name:
-        target.slug = slugify(target.name, allow_unicode=True)
-
-
-event.listen(TenantDB, "before_insert", set_tenant_slugify)
-event.listen(TenantDB, "before_update", set_tenant_slugify)

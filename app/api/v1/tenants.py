@@ -37,56 +37,56 @@ def create(service: _TenantService, create_schema: TenantCreate):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
 
 
-@router.get("/{slug}", response_model=Response[TenantRead], dependencies=[RequireSuperuserDI])
-def get_by_slug(service: _TenantService, slug: str):
+@router.get("/{code}", response_model=Response[TenantRead], dependencies=[RequireSuperuserDI])
+def get_by_code(service: _TenantService, code: str):
     try:
-        return Response(data=service.get_by_slug(slug))
+        return Response(data=service.get_by_code(code))
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.put(
-    "/{slug}",
+    "/{code}",
     response_model=Response[TenantRead],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def update(service: _TenantService, slug: str, update_schema: TenantUpdate):
+def update(service: _TenantService, code: str, update_schema: TenantUpdate):
     try:
-        return Response(data=service.update(slug, update_schema))
+        return Response(data=service.update(code, update_schema))
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
-    "/{slug}/activate",
+    "/{code}/activate",
     response_model=Response[TenantRead],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def activate(service: _TenantService, slug: str):
+def activate(service: _TenantService, code: str):
     try:
-        return Response(data=service.activate(slug))
+        return Response(data=service.activate(code))
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
 @router.patch(
-    "/{slug}/deactivate",
+    "/{code}/deactivate",
     response_model=Response[TenantRead],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def deactivate(service: _TenantService, slug: str):
+def deactivate(service: _TenantService, code: str):
     try:
-        return Response(data=service.deactivate(slug))
+        return Response(data=service.deactivate(code))
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
 
 
-@router.delete("/{slug}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireSuperuserDI])
-def delete(service: _TenantService, slug: str):
+@router.delete("/{code}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireSuperuserDI])
+def delete(service: _TenantService, code: str):
     try:
-        service.delete(slug)
+        service.delete(code)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None

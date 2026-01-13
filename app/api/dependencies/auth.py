@@ -18,7 +18,7 @@ oauth2_scheme_superuser = OAuth2PasswordBearer(
     scheme_name="superuser", tokenUrl="/api/auth/superuser/token"
 )
 oauth2_scheme_tenant = OAuth2PasswordBearer(
-    scheme_name="tenant", tokenUrl="/api/auth/{tenant_slug}/token"
+    scheme_name="tenant", tokenUrl="/api/auth/{tenant_code}/token"
 )
 
 
