@@ -1,9 +1,10 @@
 # ruff: noqa: PLR0913, S106
 from collections.abc import Callable
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from sqlalchemy.orm import Session
 
+from app.db.tenant import TenantDB
 from app.db.user import UserDB
 from app.exceptions import AuthenticationError
 from app.utils.security import create_access_token
@@ -22,8 +23,14 @@ def get_tokens(
     secret_key: str,
     algorithm: str,
     token_type: str,
+    tenant_db: TenantDB | None = None,
 ) -> AccessToken:
-    data = {"sub": user.username, "role": user.role}
+    data: dict[str, Any] = {"sub": user.username, "role": user.role}
+
+    if tenant_db:
+        data["tenant"] = {"uid": tenant_db.uid.hex, "name": tenant_db.name}
+    else:
+        data["tenant"] = None
 
     access_token = create_access_token(
         data=data,
@@ -43,11 +50,7 @@ def get_tokens(
         algorithm=algorithm,
     )
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": token_type,
-    }
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": token_type}
 
 
 def change_user_password(
