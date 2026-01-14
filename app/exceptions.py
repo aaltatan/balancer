@@ -10,5 +10,5 @@ class AuthenticationError(Exception):
     pass
 
 
-class ObjectCannotBeDeletedError(Exception):
+class CannotDeleteError(Exception):
     pass

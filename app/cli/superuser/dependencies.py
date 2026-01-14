@@ -4,7 +4,6 @@ from typing import Any
 
 import typer
 from pydantic import SecretStr, ValidationError
-from rich.console import Console
 from sqlalchemy.orm import Session
 from typer_di import Depends
 
@@ -61,7 +60,3 @@ def get_reset_password_schema(new_password: PasswordOpt) -> ResetPassword:
         return ResetPassword(new_password=SecretStr(new_password))
     except ValidationError as e:
         raise typer.BadParameter(str(e)) from e
-
-
-def get_console() -> Console:
-    return Console()

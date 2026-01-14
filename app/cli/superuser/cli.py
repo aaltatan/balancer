@@ -3,12 +3,12 @@ import typer
 from rich.console import Console
 from typer_di import Depends, TyperDI
 
+from app.cli.dependencies import get_console
 from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models.user import ResetPassword, UserCreate, UserUpdate
 from app.services.superuser import SuperuserService
 
 from .dependencies import (
-    get_console,
     get_create_schema,
     get_reset_password_schema,
     get_superuser_service,

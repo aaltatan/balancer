@@ -10,7 +10,7 @@ from app.core.exception_handlers import (
     already_exists_error_handler,
     authentication_error_handler,
     not_found_error_handler,
-    object_cannot_be_deleted_error_handler,
+    cannot_delete_error_handler,
 )
 from app.core.middlewares import profiler_middleware
 from app.db import SessionLocal, init_db
@@ -19,7 +19,7 @@ from app.exceptions import (
     AlreadyExistsError,
     AuthenticationError,
     NotFoundError,
-    ObjectCannotBeDeletedError,
+    CannotDeleteError,
 )
 
 
@@ -58,7 +58,7 @@ if config.debug:
 app.add_exception_handler(AlreadyExistsError, already_exists_error_handler)
 app.add_exception_handler(AuthenticationError, authentication_error_handler)
 app.add_exception_handler(NotFoundError, not_found_error_handler)
-app.add_exception_handler(ObjectCannotBeDeletedError, object_cannot_be_deleted_error_handler)
+app.add_exception_handler(CannotDeleteError, cannot_delete_error_handler)
 
 # routers
 

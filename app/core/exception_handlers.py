@@ -15,5 +15,5 @@ def not_found_error_handler(request: Request, exc: Exception) -> Response:
     return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": str(exc)})
 
 
-def object_cannot_be_deleted_error_handler(request: Request, exc: Exception) -> Response:
+def cannot_delete_error_handler(request: Request, exc: Exception) -> Response:
     return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": str(exc)})
