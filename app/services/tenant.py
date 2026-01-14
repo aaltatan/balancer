@@ -3,7 +3,7 @@ from typing import Any, Protocol
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
-from app.exceptions import AlreadyExistsError, NotFoundError
+from app.exceptions import AlreadyExistsError, NotFoundError, ObjectCannotBeDeletedError
 
 
 class Schema(Protocol):
@@ -86,5 +86,10 @@ class TenantService:
 
     def delete(self, code: str) -> None:
         tenant_db = self.get_by_code(code)
+
+        if tenant_db.users:
+            message = f"Cannot delete tenant with code '{code}' because it has users."
+            raise ObjectCannotBeDeletedError(message)
+
         self._db.delete(tenant_db)
         self._db.commit()

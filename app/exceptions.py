@@ -8,3 +8,7 @@ class NotFoundError(Exception):
 
 class AuthenticationError(Exception):
     pass
+
+
+class ObjectCannotBeDeletedError(Exception):
+    pass
