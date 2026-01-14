@@ -1,4 +1,5 @@
-from typing import Annotated
+import re
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -7,32 +8,63 @@ from app.api.dependencies.auth import ActiveUserDI
 from app.api.dependencies.config import ConfigDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI, PWDVerifierFnDI
-from app.api.dependencies.tenant import ActiveTenantDI
+from app.db.tenant import TenantDB
 from app.db.user import UserDB
 from app.models.auth import AccessToken, ChangePassword
-from app.models.user import UserReadWithoutRelations
+from app.models.user import UserReadWithTenant
 from app.services.auth import AuthenticationError, change_user_password, get_tokens
 
 router = APIRouter()
 
 
-@router.post("/superuser/token", response_model=AccessToken)
+def parse_username_tenant(username: str) -> tuple[str, str | None]:
+    tenant_code: str | None = None
+
+    if re.match(r"^[a-z][a-z0-9]*(.|_)?[a-z0-9]*@?[a-z]{0,4}$", username) and "@" in username:
+        username, tenant_code = username.split("@")
+
+    return username, tenant_code
+
+
+def forbidden_exc(kind: Literal["tenant", "user"]) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=f"{kind.title()} is not active",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+@router.post("/token", response_model=AccessToken)
 def login_superuser(
     config: ConfigDI,
     session: SessionDI,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
-    superuser = (
-        session.query(UserDB)
-        .filter(UserDB.username == form_data.username, UserDB.is_superuser)
-        .first()
+    invalid_credentials_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
     )
 
-    if not superuser:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    username, tenant_code = parse_username_tenant(form_data.username)
+    tenant: TenantDB | None = None
 
-    if not superuser.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
+    if tenant_code:
+        tenant = session.query(TenantDB).filter(TenantDB.code == tenant_code).first()
+
+        if not tenant:
+            raise invalid_credentials_exc
+
+        if not tenant.is_active:
+            raise forbidden_exc(kind="tenant")
+
+    user = (
+        session.query(UserDB).filter(UserDB.username == username, UserDB.tenant == tenant).first()
+    )
+
+    if not user:
+        raise invalid_credentials_exc
+
+    if not user.is_active:
+        raise forbidden_exc(kind="user")
 
     return get_tokens(
         access_token_expires_in_minutes=config.jwt_access_token_expires_in_minutes,
@@ -40,44 +72,12 @@ def login_superuser(
         secret_key=config.jwt_secret_key,
         algorithm=config.jwt_algorithm,
         token_type=config.jwt_token_type,
-        user=superuser,
+        user=user,
+        tenant_db=tenant,
     )
 
 
-@router.post("/{tenant_code}/token", response_model=AccessToken)
-def login_tenant_user(
-    config: ConfigDI,
-    session: SessionDI,
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    tenant_db: ActiveTenantDI,
-):
-    tenant_user = (
-        session.query(UserDB)
-        .filter(UserDB.username == form_data.username, UserDB.tenant == tenant_db)
-        .first()
-    )
-
-    if not tenant_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-
-    if not tenant_user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
-
-    if tenant_user.tenant and not tenant_user.tenant.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Tenant is not active")
-
-    return get_tokens(
-        user=tenant_user,
-        access_token_expires_in_minutes=config.jwt_access_token_expires_in_minutes,
-        refresh_token_expires_in_days=config.jwt_refresh_token_expires_in_days,
-        secret_key=config.jwt_secret_key,
-        algorithm=config.jwt_algorithm,
-        token_type=config.jwt_token_type,
-        tenant_db=tenant_user.tenant,
-    )
-
-
-@router.patch("/change-password", response_model=UserReadWithoutRelations)
+@router.patch("/change-password", response_model=UserReadWithTenant)
 def change_password(
     db: SessionDI,
     schema: Annotated[ChangePassword, Form()],
@@ -97,6 +97,6 @@ def change_password(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
-@router.post("/me", response_model=UserReadWithoutRelations)
+@router.post("/me", response_model=UserReadWithTenant)
 def get_user(user: ActiveUserDI):
     return user

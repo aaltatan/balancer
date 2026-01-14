@@ -11,13 +11,11 @@ from sqlalchemy.orm import Session
 
 @pytest.fixture(autouse=True)
 def init_authenticated_users(session: Session):
-    tenants = [
-        TenantDB(
-            name="Active",
-            valid_from=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
-            valid_to=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1),
-        ),
-    ]
+    tenant = TenantDB(
+        name="Active",
+        code="active",
+        valid_until=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1),
+    )
 
     users = [
         UserDB(
@@ -33,11 +31,11 @@ def init_authenticated_users(session: Session):
             lastname="Active",
             hashed_password="hashed_admin",
             role="tenant-superuser",
-            tenant=tenants[0],
+            tenant=tenant,
         ),
     ]
 
-    session.add_all(tenants)
+    session.add(tenant)
     session.add_all(users)
 
     session.commit()
@@ -48,13 +46,8 @@ def init_authenticated_users(session: Session):
     session.query(UserDB).delete()
 
 
-def get_access_token(
-    client: TestClient, username: str, password: str, tenant_code: str | None = None
-) -> str:
-    code = tenant_code or "superuser"
-    response = client.post(
-        f"/api/auth/{code}/token", data={"username": username, "password": password}
-    )
+def get_access_token(client: TestClient, username: str, password: str) -> str:
+    response = client.post("/api/auth/token", data={"username": username, "password": password})
 
     assert response.status_code == status.HTTP_200_OK
     assert "access_token" in response.json()
@@ -76,7 +69,7 @@ def test_authenticate_superuser(client: TestClient) -> None:
 
 
 def test_authenticate_tenant_superuser(client: TestClient) -> None:
-    access_token = get_access_token(client, "admin", "admin", "active")
+    access_token = get_access_token(client, "admin@active", "admin")
     response = client.post("/api/auth/me", headers={"Authorization": f"Bearer {access_token}"})
 
     assert response.status_code == status.HTTP_200_OK
@@ -86,7 +79,7 @@ def test_authenticate_tenant_superuser(client: TestClient) -> None:
 
 
 def test_deactivate_user_after_getting_access_token(client: TestClient, session: Session) -> None:
-    access_token = get_access_token(client, "admin", "admin", "active")
+    access_token = get_access_token(client, "admin@active", "admin")
 
     tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
@@ -103,7 +96,7 @@ def test_deactivate_user_after_getting_access_token(client: TestClient, session:
 
 
 def test_deactivate_tenant_after_getting_access_token(client: TestClient, session: Session) -> None:
-    access_token = get_access_token(client, "admin", "admin", "active")
+    access_token = get_access_token(client, "admin@active", "admin")
 
     tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()

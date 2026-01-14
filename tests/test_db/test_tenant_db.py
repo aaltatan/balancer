@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from app.db.tenant import TenantDB
@@ -10,18 +10,18 @@ def init_tenants(session: Session):
     tenants_db = [
         TenantDB(
             name="Company 1",
-            valid_from=datetime(2026, 1, 1, tzinfo=UTC),
-            valid_to=datetime(2026, 12, 31, tzinfo=UTC),
+            code="aaaa",
+            valid_until=datetime.now(tz=UTC) + timedelta(days=5),
         ),
         TenantDB(
             name="Company 2",
-            valid_from=datetime(2026, 1, 1, tzinfo=UTC),
-            valid_to=datetime(2026, 1, 5, tzinfo=UTC),
+            code="bbbb",
+            valid_until=datetime.now(tz=UTC) - timedelta(days=5),
         ),
         TenantDB(
             name="Company 3",
-            valid_from=datetime(2026, 1, 1, tzinfo=UTC),
-            valid_to=datetime(2026, 12, 31, tzinfo=UTC),
+            code="cccc",
+            valid_until=datetime.now(tz=UTC) + timedelta(days=5),
             disabled=True,
         ),
     ]

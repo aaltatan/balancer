@@ -70,10 +70,6 @@ class _TenantRead(BaseModel):
     uid: uuid.UUID
     name: str
     code: str
-    valid_until: datetime
-
-    created_at: datetime
-    updated_at: datetime
 
 
 class UserReadWithTenant(UserReadWithoutRelations):

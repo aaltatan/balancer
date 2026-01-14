@@ -44,6 +44,6 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(v1.router, prefix="/api/v1")
 
 
-@app.get("/health")
+@app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
