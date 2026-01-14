@@ -57,25 +57,28 @@ def get_access_token(client: TestClient, username: str, password: str) -> str:
     return response.json()["access_token"]
 
 
-def test_authenticate_superuser(client: TestClient) -> None:
-    access_token = get_access_token(client, "admin", "admin")
-
+@pytest.mark.parametrize(
+    "username, password, expected_username, expected_fullname, expected_role",
+    [
+        ("admin", "admin", "admin", "Superuser Active", "superuser"),
+        ("admin@active", "admin", "admin", "Tenant Superuser Active", "tenant-superuser"),
+    ],
+)
+def test_authenticate_superuser(  # noqa: PLR0913
+    client: TestClient,
+    username: str,
+    password: str,
+    expected_username: str,
+    expected_fullname: str,
+    expected_role: str,
+) -> None:
+    access_token = get_access_token(client, username, password)
     response = client.post("/api/auth/me", headers={"Authorization": f"Bearer {access_token}"})
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json()["username"] == "admin"
-    assert response.json()["fullname"] == "Superuser Active"
-    assert response.json()["role"] == "superuser"
-
-
-def test_authenticate_tenant_superuser(client: TestClient) -> None:
-    access_token = get_access_token(client, "admin@active", "admin")
-    response = client.post("/api/auth/me", headers={"Authorization": f"Bearer {access_token}"})
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()["username"] == "admin"
-    assert response.json()["fullname"] == "Tenant Superuser Active"
-    assert response.json()["role"] == "tenant-superuser"
+    assert response.json()["username"] == expected_username
+    assert response.json()["fullname"] == expected_fullname
+    assert response.json()["role"] == expected_role
 
 
 def test_deactivate_user_after_getting_access_token(client: TestClient, session: Session) -> None:
@@ -105,6 +108,24 @@ def test_deactivate_tenant_after_getting_access_token(client: TestClient, sessio
     assert bool(tenant)
 
     tenant.disabled = True
+    session.commit()
+
+    response = client.post("/api/auth/me", headers={"Authorization": f"Bearer {access_token}"})
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json()["detail"] == "Tenant is not active"
+
+
+def test_outdated_tenant_after_getting_access_token(client: TestClient, session: Session) -> None:
+    access_token = get_access_token(client, "admin@active", "admin")
+
+    tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
+    user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
+
+    assert bool(user)
+    assert bool(tenant)
+
+    tenant.valid_until = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=1)
     session.commit()
 
     response = client.post("/api/auth/me", headers={"Authorization": f"Bearer {access_token}"})
