@@ -1,12 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
+from pydantic import BaseModel
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
+from app.api.responses import get_export_response
 from app.models import Response
-from app.models.tenant import TenantCreate, TenantRead, TenantUpdate
+from app.models.tenant import TenantCreate, TenantExport, TenantRead, TenantUpdate
 from app.services.tenant import TenantService
+from app.utils.export import ExportType
 
 
 def get_tenant_service(db: SessionDI) -> TenantService:
@@ -18,9 +21,18 @@ _TenantService = Annotated[TenantService, Depends(get_tenant_service)]
 router = APIRouter()
 
 
-@router.get("/", response_model=Response[list[TenantRead]], dependencies=[RequireSuperuserDI])
-def get_all(service: _TenantService):
-    return Response(data=service.get_all())
+class QueryParams(BaseModel):
+    export: ExportType | None = None
+
+
+@router.get("/", response_model=Response[list[TenantRead]])
+def get_all(service: _TenantService, params: Annotated[QueryParams, Query()]):
+    data = service.get_all()
+
+    if params.export:
+        return get_export_response(params.export, data, TenantExport, "tenants")
+
+    return Response(data=data)
 
 
 @router.post(

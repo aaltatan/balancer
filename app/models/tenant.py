@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated, Self
 
 import pytz
-from pydantic import AfterValidator, BaseModel, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
 from app.utils.timezone import get_default_tz_now
 
@@ -61,6 +61,10 @@ class _UserRead(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+
+
+class TenantExport(TenantBase):
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TenantRead(TenantBase):

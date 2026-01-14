@@ -9,8 +9,8 @@ from app.core.config import get_config
 from app.core.exception_handlers import (
     already_exists_error_handler,
     authentication_error_handler,
-    not_found_error_handler,
     cannot_delete_error_handler,
+    not_found_error_handler,
 )
 from app.core.middlewares import profiler_middleware
 from app.db import SessionLocal, init_db
@@ -18,8 +18,8 @@ from app.db.permission import init_permissions
 from app.exceptions import (
     AlreadyExistsError,
     AuthenticationError,
-    NotFoundError,
     CannotDeleteError,
+    NotFoundError,
 )
 
 
