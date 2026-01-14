@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from typing import Any
 
 import pytest
@@ -55,3 +55,13 @@ def init_db():
 @pytest.fixture(scope="session")
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture(scope="session")
+def hasher_fn() -> Callable[[str], str]:
+    return override_hash_password
+
+
+@pytest.fixture(scope="session")
+def verifier_fn() -> Callable[[str, str], bool]:
+    return override_verify_password
