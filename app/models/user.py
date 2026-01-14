@@ -5,6 +5,7 @@ from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, Field
 
+from app.constants import USERNAME_REGEX
 from app.db.permission import Permission
 from app.db.user import Role
 
@@ -12,7 +13,7 @@ from ._fields import PasswordFld
 
 
 def validate_username(value: str) -> str:
-    if not re.match(r"^[a-z][a-z0-9]*(.|_)?[a-z0-9]*$", value):
+    if not re.match(USERNAME_REGEX, value):
         message = (
             "Username must be lowercase letters or numbers only, "
             "if the username of two words, it must be like this: first.last or first_last, "

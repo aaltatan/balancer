@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 def init_authenticated_users(session: Session):
     tenant = TenantDB(
         name="Active",
-        code="active",
+        code="actv",
         valid_until=datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(days=1),
     )
 
@@ -61,7 +61,7 @@ def get_access_token(client: TestClient, username: str, password: str) -> str:
     "username, password, expected_username, expected_fullname, expected_role",
     [
         ("admin", "admin", "admin", "Superuser Active", "superuser"),
-        ("admin@active", "admin", "admin", "Tenant Superuser Active", "tenant-superuser"),
+        ("admin@actv", "admin", "admin", "Tenant Superuser Active", "tenant-superuser"),
     ],
 )
 def test_authenticate_superuser(  # noqa: PLR0913
@@ -81,10 +81,21 @@ def test_authenticate_superuser(  # noqa: PLR0913
     assert response.json()["role"] == expected_role
 
 
-def test_deactivate_user_after_getting_access_token(client: TestClient, session: Session) -> None:
-    access_token = get_access_token(client, "admin@active", "admin")
+@pytest.mark.parametrize(
+    "username, password",
+    [("admin@", "admin"), ("admin@xctv", "admin"), ("xxx@active", "admin")],
+)
+def test_authenticate_invalid_credentials(client: TestClient, username: str, password: str) -> None:
+    response = client.post("/api/auth/token", data={"username": username, "password": password})
 
-    tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == "Invalid credentials"
+
+
+def test_deactivate_user_after_getting_access_token(client: TestClient, session: Session) -> None:
+    access_token = get_access_token(client, "admin@actv", "admin")
+
+    tenant = session.query(TenantDB).filter(TenantDB.code == "actv").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
 
     assert bool(user)
@@ -99,9 +110,9 @@ def test_deactivate_user_after_getting_access_token(client: TestClient, session:
 
 
 def test_deactivate_tenant_after_getting_access_token(client: TestClient, session: Session) -> None:
-    access_token = get_access_token(client, "admin@active", "admin")
+    access_token = get_access_token(client, "admin@actv", "admin")
 
-    tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
+    tenant = session.query(TenantDB).filter(TenantDB.code == "actv").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
 
     assert bool(user)
@@ -117,9 +128,9 @@ def test_deactivate_tenant_after_getting_access_token(client: TestClient, sessio
 
 
 def test_outdated_tenant_after_getting_access_token(client: TestClient, session: Session) -> None:
-    access_token = get_access_token(client, "admin@active", "admin")
+    access_token = get_access_token(client, "admin@actv", "admin")
 
-    tenant = session.query(TenantDB).filter(TenantDB.code == "active").first()
+    tenant = session.query(TenantDB).filter(TenantDB.code == "actv").first()
     user = session.query(UserDB).filter(UserDB.username == "admin", UserDB.tenant == tenant).first()
 
     assert bool(user)

@@ -8,6 +8,7 @@ from app.api.dependencies.auth import ActiveUserDI
 from app.api.dependencies.config import ConfigDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI, PWDVerifierFnDI
+from app.constants import LOGIN_USERNAME_REGEX
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
 from app.models.auth import AccessToken, ChangePassword
@@ -17,10 +18,10 @@ from app.services.auth import AuthenticationError, change_user_password, get_tok
 router = APIRouter()
 
 
-def parse_username_tenant(username: str) -> tuple[str, str | None]:
+def parse_username_tenant(username: str, pattern: str) -> tuple[str, str | None]:
     tenant_code: str | None = None
 
-    if re.match(r"^[a-z][a-z0-9]*(.|_)?[a-z0-9]*@?[a-z]{0,4}$", username) and "@" in username:
+    if re.match(pattern, username) and "@" in username:
         username, tenant_code = username.split("@")
 
     return username, tenant_code
@@ -44,7 +45,7 @@ def login_superuser(
         status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
     )
 
-    username, tenant_code = parse_username_tenant(form_data.username)
+    username, tenant_code = parse_username_tenant(form_data.username, LOGIN_USERNAME_REGEX)
     tenant: TenantDB | None = None
 
     if tenant_code:
@@ -94,7 +95,7 @@ def change_password(
             verifier_fn=verifier_fn,
         )
     except AuthenticationError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.post("/me", response_model=UserReadWithTenant)
