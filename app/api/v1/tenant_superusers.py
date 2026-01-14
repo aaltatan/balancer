@@ -1,12 +1,11 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.hash import PWDHasherFnDI
 from app.api.dependencies.tenant import ActiveTenantDI
-from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models import Response
 from app.models.user import ResetPassword, UserCreate, UserRead, UserUpdate
 from app.services.generic_user import GenericUserService
@@ -36,21 +35,15 @@ def get_all(service: _TenantSuperuserService):
     dependencies=[RequireSuperuserDI],
 )
 def create(service: _TenantSuperuserService, create_schema: Annotated[UserCreate, Body()]):
-    try:
-        data = service.create(
-            schema=create_schema, plain_password=create_schema.password.get_secret_value()
-        )
-        return Response(data=data)
-    except AlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
+    data = service.create(
+        schema=create_schema, plain_password=create_schema.password.get_secret_value()
+    )
+    return Response(data=data)
 
 
 @router.get("/{username}", response_model=Response[UserRead], dependencies=[RequireSuperuserDI])
 def get_by_username(service: _TenantSuperuserService, username: str):
-    try:
-        return Response(data=service.get_by_username(username))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.get_by_username(username))
 
 
 @router.put(
@@ -60,10 +53,7 @@ def get_by_username(service: _TenantSuperuserService, username: str):
     dependencies=[RequireSuperuserDI],
 )
 def update(service: _TenantSuperuserService, username: str, update_schema: UserUpdate):
-    try:
-        return Response(data=service.update(username, update_schema))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.update(username, update_schema))
 
 
 @router.patch(
@@ -73,10 +63,7 @@ def update(service: _TenantSuperuserService, username: str, update_schema: UserU
     dependencies=[RequireSuperuserDI],
 )
 def activate(service: _TenantSuperuserService, username: str):
-    try:
-        return Response(data=service.activate(username))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.activate(username))
 
 
 @router.patch(
@@ -86,10 +73,7 @@ def activate(service: _TenantSuperuserService, username: str):
     dependencies=[RequireSuperuserDI],
 )
 def deactivate(service: _TenantSuperuserService, username: str):
-    try:
-        return Response(data=service.deactivate(username))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.deactivate(username))
 
 
 @router.patch(
@@ -99,18 +83,11 @@ def deactivate(service: _TenantSuperuserService, username: str):
     dependencies=[RequireSuperuserDI],
 )
 def reset_password(service: _TenantSuperuserService, username: str, schema: ResetPassword):
-    try:
-        data = service.reset_password(username, schema.new_password.get_secret_value())
-        return Response(data=data)
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.reset_password(username, schema.new_password.get_secret_value()))
 
 
 @router.delete(
     "/{username}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireSuperuserDI]
 )
 def delete(service: _TenantSuperuserService, username: str):
-    try:
-        service.delete(username)
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    service.delete(username)

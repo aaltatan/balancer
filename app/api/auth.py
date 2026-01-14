@@ -13,7 +13,7 @@ from app.db.tenant import TenantDB
 from app.db.user import UserDB
 from app.models.auth import AccessToken, ChangePassword
 from app.models.user import UserReadWithTenant
-from app.services.auth import AuthenticationError, change_user_password, get_tokens
+from app.services.auth import change_user_password, get_tokens
 
 router = APIRouter()
 
@@ -86,16 +86,13 @@ def change_password(
     verifier_fn: PWDVerifierFnDI,
     hasher_fn: PWDHasherFnDI,
 ):
-    try:
-        return change_user_password(
-            db=db,
-            user=user,
-            old_password=schema.old_password.get_secret_value(),
-            new_hashed_password=hasher_fn(schema.new_password.get_secret_value()),
-            verifier_fn=verifier_fn,
-        )
-    except AuthenticationError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    return change_user_password(
+        db=db,
+        user=user,
+        old_password=schema.old_password.get_secret_value(),
+        new_hashed_password=hasher_fn(schema.new_password.get_secret_value()),
+        verifier_fn=verifier_fn,
+    )
 
 
 @router.post("/me", response_model=UserReadWithTenant)

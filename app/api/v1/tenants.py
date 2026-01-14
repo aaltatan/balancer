@@ -1,10 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
-from app.exceptions import AlreadyExistsError, NotFoundError
 from app.models import Response
 from app.models.tenant import TenantCreate, TenantRead, TenantUpdate
 from app.services.tenant import TenantService
@@ -31,18 +30,12 @@ def get_all(service: _TenantService):
     dependencies=[RequireSuperuserDI],
 )
 def create(service: _TenantService, create_schema: TenantCreate):
-    try:
-        return Response(data=service.create(create_schema))
-    except AlreadyExistsError as e:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e)) from None
+    return Response(data=service.create(create_schema))
 
 
 @router.get("/{code}", response_model=Response[TenantRead], dependencies=[RequireSuperuserDI])
 def get_by_code(service: _TenantService, code: str):
-    try:
-        return Response(data=service.get_by_code(code))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.get_by_code(code))
 
 
 @router.put(
@@ -52,10 +45,7 @@ def get_by_code(service: _TenantService, code: str):
     dependencies=[RequireSuperuserDI],
 )
 def update(service: _TenantService, code: str, update_schema: TenantUpdate):
-    try:
-        return Response(data=service.update(code, update_schema))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.update(code, update_schema))
 
 
 @router.patch(
@@ -65,10 +55,7 @@ def update(service: _TenantService, code: str, update_schema: TenantUpdate):
     dependencies=[RequireSuperuserDI],
 )
 def activate(service: _TenantService, code: str):
-    try:
-        return Response(data=service.activate(code))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.activate(code))
 
 
 @router.patch(
@@ -78,15 +65,9 @@ def activate(service: _TenantService, code: str):
     dependencies=[RequireSuperuserDI],
 )
 def deactivate(service: _TenantService, code: str):
-    try:
-        return Response(data=service.deactivate(code))
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    return Response(data=service.deactivate(code))
 
 
 @router.delete("/{code}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireSuperuserDI])
 def delete(service: _TenantService, code: str):
-    try:
-        service.delete(code)
-    except NotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from None
+    service.delete(code)

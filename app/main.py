@@ -6,9 +6,15 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api import auth, v1
 from app.core.config import get_config
+from app.core.exception_handlers import (
+    already_exists_error_handler,
+    authentication_error_handler,
+    not_found_error_handler,
+)
 from app.core.middlewares import profiler_middleware
 from app.db import SessionLocal, init_db
 from app.db.permission import init_permissions
+from app.exceptions import AlreadyExistsError, AuthenticationError, NotFoundError
 
 
 @asynccontextmanager
@@ -28,6 +34,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# middlewares
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -39,6 +47,13 @@ app.add_middleware(
 if config.debug:
     app.add_middleware(BaseHTTPMiddleware, dispatch=profiler_middleware)
 
+# exception handlers
+
+app.add_exception_handler(AlreadyExistsError, already_exists_error_handler)
+app.add_exception_handler(AuthenticationError, authentication_error_handler)
+app.add_exception_handler(NotFoundError, not_found_error_handler)
+
+# routers
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(v1.router, prefix="/api/v1")
