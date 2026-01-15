@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
 from app.exceptions import AlreadyExistsError, CannotDeleteError, NotFoundError
-from app.filters import FieldsMapper, ModifierFn, get_criterion
+from app.filters import FieldsMapper, get_criterion
 
 
 class Schema(Protocol):
@@ -16,15 +16,11 @@ class TenantService:
         self._db = session
 
     def get_all(
-        self,
-        filter_schema: Schema,
-        fields_mapper: FieldsMapper,
-        kind: Literal["and", "or"] = "and",
-        **custom_modifiers: ModifierFn,
+        self, filter_schema: Schema, fields_mapper: FieldsMapper, kind: Literal["and", "or"] = "and"
     ) -> list[TenantDB]:
         return (
             self._db.query(TenantDB)
-            .filter(get_criterion(fields_mapper, filter_schema, kind=kind, **custom_modifiers))
+            .filter(get_criterion(fields_mapper, filter_schema, kind=kind))
             .all()
         )
 
