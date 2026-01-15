@@ -5,24 +5,13 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
-from app.db.tenant import TenantDB
-from app.filters import FieldsMapper
 from app.models import Response
 from app.models.tenant import TenantCreate, TenantFilter, TenantRead, TenantUpdate
-from app.services.tenant import TenantService
+from app.services.tenant import OrderBy, TenantService
 
 
 def get_tenant_service(db: SessionDI) -> TenantService:
     return TenantService(db)
-
-
-def get_fields_mapper() -> FieldsMapper:
-    return {
-        "search": TenantDB.search,
-        "code": TenantDB.code,
-        "phone": TenantDB.phone,
-        "valid_until": TenantDB.valid_until,
-    }
 
 
 def get_filter_schema(  # noqa: PLR0913
@@ -63,11 +52,11 @@ router = APIRouter()
 @router.get("/", response_model=Response[list[TenantRead]])
 def get_all(
     service: Annotated[TenantService, Depends(get_tenant_service)],
-    fields_mapper: Annotated[FieldsMapper, Depends(get_fields_mapper)],
     filter_schema: Annotated[TenantFilter, Depends(get_filter_schema)],
-    filtering_kind: Annotated[Literal["and", "or"], Query(alias="filtering-kind")] = "and",
+    filtering_kind: Annotated[Literal["and", "or"], Query()] = "and",
+    order_by: list[OrderBy] = Query(default=[OrderBy.NAME_ASC]),  # noqa: B008, FAST002
 ):
-    data = service.get_all(filter_schema, fields_mapper, filtering_kind)
+    data = service.get_all(order_by, filter_schema, filtering_kind)
     return Response(data=data)
 
 

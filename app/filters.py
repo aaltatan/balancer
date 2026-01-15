@@ -1,7 +1,8 @@
 from collections.abc import Callable
+from enum import StrEnum
 from typing import Any, Literal, Protocol
 
-from sqlalchemy import ColumnElement, and_, or_
+from sqlalchemy import ColumnElement, UnaryExpression, and_, or_
 from sqlalchemy.ext.hybrid import _HybridClassLevelAccessor
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -45,6 +46,10 @@ GLOBAL_MODIFIERS: dict[str, ModifierFn] = {
     "notnull": lambda _, attr: ~attr.is_(None),
     "between": lambda value, attr: attr.between(value[0], value[1]),
 }
+
+
+def get_order_by[T: StrEnum](order_by: list[T], mapper: dict[T, UnaryExpression[Any]]):
+    return [mapper[order_by] for order_by in order_by]
 
 
 def get_criterion(

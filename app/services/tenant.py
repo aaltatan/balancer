@@ -1,10 +1,46 @@
+from enum import StrEnum
 from typing import Any, Literal, Protocol
 
+from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
 from app.exceptions import AlreadyExistsError, CannotDeleteError, NotFoundError
-from app.filters import FieldsMapper, get_criterion
+from app.filters import get_criterion, get_order_by
+
+
+class OrderBy(StrEnum):
+    NAME_ASC = "name"
+    NAME_DESC = "name (desc)"
+    CODE = "code"
+    CODE_DESC = "code (desc)"
+    VALID_UNTIL_ASC = "valid until"
+    VALID_UNTIL_DESC = "valid until (desc)"
+    CREATED_AT_ASC = "created at"
+    CREATED_AT_DESC = "created at (desc)"
+    UPDATED_AT_ASC = "updated at"
+    UPDATED_AT_DESC = "updated at (desc)"
+
+
+ORDER_BY_FIELDS_MAPPER = {
+    OrderBy.NAME_ASC: asc(TenantDB.name),
+    OrderBy.NAME_DESC: desc(TenantDB.name),
+    OrderBy.CODE: asc(TenantDB.code),
+    OrderBy.CODE_DESC: desc(TenantDB.code),
+    OrderBy.VALID_UNTIL_ASC: asc(TenantDB.valid_until),
+    OrderBy.VALID_UNTIL_DESC: desc(TenantDB.valid_until),
+    OrderBy.CREATED_AT_ASC: asc(TenantDB.created_at),
+    OrderBy.CREATED_AT_DESC: desc(TenantDB.created_at),
+    OrderBy.UPDATED_AT_ASC: asc(TenantDB.updated_at),
+    OrderBy.UPDATED_AT_DESC: desc(TenantDB.updated_at),
+}
+
+FILTERS_FIELDS_MAPPER = {
+    "search": TenantDB.search,
+    "code": TenantDB.code,
+    "phone": TenantDB.phone,
+    "valid_until": TenantDB.valid_until,
+}
 
 
 class Schema(Protocol):
@@ -17,13 +53,14 @@ class TenantService:
 
     def get_all(
         self,
+        order_by: list[OrderBy],
         filter_schema: Schema,
-        filter_fields_mapper: FieldsMapper,
         filter_kind: Literal["and", "or"] = "and",
     ) -> list[TenantDB]:
         return (
             self._db.query(TenantDB)
-            .filter(get_criterion(filter_fields_mapper, filter_schema, kind=filter_kind))
+            .filter(get_criterion(FILTERS_FIELDS_MAPPER, filter_schema, kind=filter_kind))
+            .order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
             .all()
         )
 
