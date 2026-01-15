@@ -90,3 +90,19 @@ class TenantUpdate(BaseModel):
     country: CountryFld | None = None
     phone: PhoneFld | None = None
     notes: NotesFld | None = None
+
+
+class TenantFilter(BaseModel):
+    search__contains: str | None
+    search__notcontains: str | None
+    code__eq: str | None
+    code__ne: str | None
+    phone__contains: str | None
+    phone__notcontains: str | None
+    phone__eq: str | None
+    valid_until__eq: datetime | None
+    valid_until__ne: datetime | None
+    valid_until__gt: datetime | None
+    valid_until__gte: datetime | None
+    valid_until__lt: datetime | None
+    valid_until__lte: datetime | None

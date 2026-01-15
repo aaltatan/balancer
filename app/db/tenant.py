@@ -39,6 +39,15 @@ class TenantDB(Base):
     users: Mapped[set["UserDB"]] = relationship("UserDB", back_populates="tenant", lazy="joined")
 
     @hybrid_property
+    def search(self) -> str:  # pyright: ignore[reportRedeclaration]
+        return f"{self.name} {self.code} {self.name}"
+
+    @search.inplace.expression
+    @classmethod
+    def search(cls) -> ColumnElement[str]:
+        return func.concat(cls.name, " ", cls.code, " ", cls.name)
+
+    @hybrid_property
     def is_outdated(self) -> bool:
         now = datetime.now(tz=timezone.utc).date()
         return now > self.valid_until

@@ -1,9 +1,10 @@
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
-from app.exceptions import AlreadyExistsError, NotFoundError, CannotDeleteError
+from app.exceptions import AlreadyExistsError, CannotDeleteError, NotFoundError
+from app.filters import FieldsMapper, ModifierFn, get_criterion
 
 
 class Schema(Protocol):
@@ -14,8 +15,18 @@ class TenantService:
     def __init__(self, session: Session) -> None:
         self._db = session
 
-    def get_all(self) -> list[TenantDB]:
-        return self._db.query(TenantDB).all()
+    def get_all(
+        self,
+        filter_schema: Schema,
+        fields_mapper: FieldsMapper,
+        kind: Literal["and", "or"] = "and",
+        **custom_modifiers: ModifierFn,
+    ) -> list[TenantDB]:
+        return (
+            self._db.query(TenantDB)
+            .filter(get_criterion(fields_mapper, filter_schema, kind=kind, **custom_modifiers))
+            .all()
+        )
 
     def get_by_uid(self, uid: str) -> TenantDB:
         tenant = self._db.query(TenantDB).filter(TenantDB.uid == uid).first()
