@@ -16,11 +16,14 @@ class TenantService:
         self._db = session
 
     def get_all(
-        self, filter_schema: Schema, fields_mapper: FieldsMapper, kind: Literal["and", "or"] = "and"
+        self,
+        filter_schema: Schema,
+        filter_fields_mapper: FieldsMapper,
+        filter_kind: Literal["and", "or"] = "and",
     ) -> list[TenantDB]:
         return (
             self._db.query(TenantDB)
-            .filter(get_criterion(fields_mapper, filter_schema, kind=kind))
+            .filter(get_criterion(filter_fields_mapper, filter_schema, kind=filter_kind))
             .all()
         )
 

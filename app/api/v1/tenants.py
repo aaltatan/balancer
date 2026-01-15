@@ -5,13 +5,11 @@ from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
-from app.api.responses import get_export_response
 from app.db.tenant import TenantDB
 from app.filters import FieldsMapper
 from app.models import Response
-from app.models.tenant import TenantCreate, TenantExport, TenantFilter, TenantRead, TenantUpdate
+from app.models.tenant import TenantCreate, TenantFilter, TenantRead, TenantUpdate
 from app.services.tenant import TenantService
-from app.utils.export import ExportType
 
 
 def get_tenant_service(db: SessionDI) -> TenantService:
@@ -68,13 +66,8 @@ def get_all(
     fields_mapper: Annotated[FieldsMapper, Depends(get_fields_mapper)],
     filter_schema: Annotated[TenantFilter, Depends(get_filter_schema)],
     filtering_kind: Annotated[Literal["and", "or"], Query(alias="filtering-kind")] = "and",
-    export: Annotated[ExportType | None, Query()] = None,
 ):
     data = service.get_all(filter_schema, fields_mapper, filtering_kind)
-
-    if export:
-        return get_export_response(export, data, TenantExport, "tenants")
-
     return Response(data=data)
 
 
