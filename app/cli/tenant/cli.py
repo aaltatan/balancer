@@ -26,8 +26,9 @@ def list_tenants(
     console: Console = Depends(get_console),
     service: TenantService = Depends(get_tenant_service),
 ) -> None:
-    tenants = service.get_all()
-    console.print(get_table(tenants))
+    items, items_count = service.get_all()
+    console.print(get_table(items))
+    console.print(f"[bold green]Total items: {items_count}[/bold green]")
 
 
 @app.command(name="create")

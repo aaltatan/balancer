@@ -47,31 +47,38 @@ class Schema(Protocol):
     def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
+class SkipLimitParams(Protocol):
+    skip: int
+    limit: int
+
+
 class TenantService:
     def __init__(self, session: Session) -> None:
         self._db = session
 
     def get_all(
         self,
-        order_by: list[OrderBy],
-        filter_schema: Schema,
-        filter_kind: Literal["and", "or"] = "and",
-    ) -> list[TenantDB]:
-        return (
-            self._db.query(TenantDB)
-            .filter(get_criterion(FILTERS_FIELDS_MAPPER, filter_schema, kind=filter_kind))
-            .order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
-            .all()
-        )
+        order_by: list[OrderBy] | None = None,
+        filter_schema: Schema | None = None,
+        filtering_kind: Literal["and", "or"] = "and",
+        pagination_schema: SkipLimitParams | None = None,
+    ) -> tuple[list[TenantDB], int]:
+        query = self._db.query(TenantDB)
 
-    def get_by_uid(self, uid: str) -> TenantDB:
-        tenant = self._db.query(TenantDB).filter(TenantDB.uid == uid).first()
+        if order_by:
+            query = query.order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
 
-        if not tenant:
-            message = f"Tenant with uid '{uid}' not found."
-            raise NotFoundError(message)
+        if filter_schema:
+            query = query.filter(
+                get_criterion(FILTERS_FIELDS_MAPPER, filter_schema, kind=filtering_kind)
+            )
 
-        return tenant
+        count = query.count()
+
+        if pagination_schema:
+            query = query.offset(pagination_schema.skip).limit(pagination_schema.limit)
+
+        return query.all(), count
 
     def get_by_code(self, code: str) -> TenantDB:
         tenant = self._db.query(TenantDB).filter(TenantDB.code == code).first()
