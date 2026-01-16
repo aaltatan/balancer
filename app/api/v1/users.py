@@ -20,11 +20,8 @@ def get_user_service(
     return UserService(db, GenericUserService(db, hasher_fn), tenant)
 
 
-_UserService = Annotated[UserService, Depends(get_user_service)]
-
-
 @router.get("/", response_model=Response[list[UserRead]], dependencies=[RequireAnySuperuserDI])
-def get_all(service: _UserService):
+def get_all(service: Annotated[UserService, Depends(get_user_service)]):
     return Response(data=service.get_all())
 
 
@@ -34,7 +31,7 @@ def get_all(service: _UserService):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireAnySuperuserDI],
 )
-def create(service: _UserService, create_schema: UserCreate):
+def create(service: Annotated[UserService, Depends(get_user_service)], create_schema: UserCreate):
     data = service.create(
         schema=create_schema, plain_password=create_schema.password.get_secret_value()
     )
@@ -42,7 +39,7 @@ def create(service: _UserService, create_schema: UserCreate):
 
 
 @router.get("/{username}", response_model=Response[UserRead], dependencies=[RequireAnySuperuserDI])
-def get_by_username(service: _UserService, username: str):
+def get_by_username(service: Annotated[UserService, Depends(get_user_service)], username: str):
     return Response(data=service.get_by_username(username))
 
 
@@ -52,7 +49,11 @@ def get_by_username(service: _UserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def update(service: _UserService, username: str, update_schema: UserUpdate):
+def update(
+    service: Annotated[UserService, Depends(get_user_service)],
+    username: str,
+    update_schema: UserUpdate,
+):
     return Response(data=service.update(username, update_schema))
 
 
@@ -62,7 +63,7 @@ def update(service: _UserService, username: str, update_schema: UserUpdate):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def activate(service: _UserService, username: str):
+def activate(service: Annotated[UserService, Depends(get_user_service)], username: str):
     return Response(data=service.activate(username))
 
 
@@ -72,7 +73,7 @@ def activate(service: _UserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def deactivate(service: _UserService, username: str):
+def deactivate(service: Annotated[UserService, Depends(get_user_service)], username: str):
     return Response(data=service.deactivate(username))
 
 
@@ -82,14 +83,18 @@ def deactivate(service: _UserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def reset_password(service: _UserService, username: str, schema: Annotated[ResetPassword, Form()]):
+def reset_password(
+    service: Annotated[UserService, Depends(get_user_service)],
+    username: str,
+    schema: Annotated[ResetPassword, Form()],
+):
     return Response(data=service.reset_password(username, schema.new_password.get_secret_value()))
 
 
 @router.delete(
     "/{username}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireAnySuperuserDI]
 )
-def delete(service: _UserService, username: str):
+def delete(service: Annotated[UserService, Depends(get_user_service)], username: str):
     service.delete(username)
 
 
@@ -99,7 +104,10 @@ def delete(service: _UserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def bulk_activate(service: _UserService, usernames: Annotated[list[str], Body()]):
+def bulk_activate(
+    service: Annotated[UserService, Depends(get_user_service)],
+    usernames: Annotated[list[str], Body()],
+):
     return Response(data=service.bulk_activate(usernames))
 
 
@@ -109,12 +117,18 @@ def bulk_activate(service: _UserService, usernames: Annotated[list[str], Body()]
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def bulk_deactivate(service: _UserService, usernames: Annotated[list[str], Body()]):
+def bulk_deactivate(
+    service: Annotated[UserService, Depends(get_user_service)],
+    usernames: Annotated[list[str], Body()],
+):
     return Response(data=service.bulk_deactivate(usernames))
 
 
 @router.delete(
     "/bulk/delete", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireAnySuperuserDI]
 )
-def bulk_delete(service: _UserService, usernames: Annotated[list[str], Body()]):
+def bulk_delete(
+    service: Annotated[UserService, Depends(get_user_service)],
+    usernames: Annotated[list[str], Body()],
+):
     service.bulk_delete(usernames)

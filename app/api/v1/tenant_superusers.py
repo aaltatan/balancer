@@ -20,11 +20,8 @@ def get_tenant_superuser_service(
     return TenantSuperuserService(db, GenericUserService(db, hasher_fn), tenant)
 
 
-_TenantSuperuserService = Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)]
-
-
 @router.get("/", response_model=Response[list[UserRead]], dependencies=[RequireSuperuserDI])
-def get_all(service: _TenantSuperuserService):
+def get_all(service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)]):
     return Response(data=service.get_all())
 
 
@@ -34,7 +31,10 @@ def get_all(service: _TenantSuperuserService):
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireSuperuserDI],
 )
-def create(service: _TenantSuperuserService, create_schema: Annotated[UserCreate, Body()]):
+def create(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)],
+    create_schema: Annotated[UserCreate, Body()],
+):
     data = service.create(
         schema=create_schema, plain_password=create_schema.password.get_secret_value()
     )
@@ -42,7 +42,9 @@ def create(service: _TenantSuperuserService, create_schema: Annotated[UserCreate
 
 
 @router.get("/{username}", response_model=Response[UserRead], dependencies=[RequireSuperuserDI])
-def get_by_username(service: _TenantSuperuserService, username: str):
+def get_by_username(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)], username: str
+):
     return Response(data=service.get_by_username(username))
 
 
@@ -52,7 +54,11 @@ def get_by_username(service: _TenantSuperuserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def update(service: _TenantSuperuserService, username: str, update_schema: UserUpdate):
+def update(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)],
+    username: str,
+    update_schema: UserUpdate,
+):
     return Response(data=service.update(username, update_schema))
 
 
@@ -62,7 +68,9 @@ def update(service: _TenantSuperuserService, username: str, update_schema: UserU
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def activate(service: _TenantSuperuserService, username: str):
+def activate(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)], username: str
+):
     return Response(data=service.activate(username))
 
 
@@ -72,7 +80,9 @@ def activate(service: _TenantSuperuserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def deactivate(service: _TenantSuperuserService, username: str):
+def deactivate(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)], username: str
+):
     return Response(data=service.deactivate(username))
 
 
@@ -82,12 +92,18 @@ def deactivate(service: _TenantSuperuserService, username: str):
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
-def reset_password(service: _TenantSuperuserService, username: str, schema: ResetPassword):
+def reset_password(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)],
+    username: str,
+    schema: ResetPassword,
+):
     return Response(data=service.reset_password(username, schema.new_password.get_secret_value()))
 
 
 @router.delete(
     "/{username}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireSuperuserDI]
 )
-def delete(service: _TenantSuperuserService, username: str):
+def delete(
+    service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)], username: str
+):
     service.delete(username)
