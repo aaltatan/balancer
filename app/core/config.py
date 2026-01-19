@@ -21,9 +21,8 @@ class Config(BaseSettings):
     jwt_refresh_token_expires_in_days: int = 7
     jwt_token_type: str = ""
 
-    default_skip: int = 0
-    default_limit: int = 10
-    default_max_limit: int = 100
+    page_size: int = 10
+    max_page_size: int = 100
 
     model_config = SettingsConfigDict(env_file=".env")
 

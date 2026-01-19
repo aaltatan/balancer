@@ -3,9 +3,8 @@ from collections.abc import Sequence
 from io import BytesIO
 from typing import Annotated, Literal, TypedDict
 
-from fastapi import Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, Field, computed_field
 
 from app.utils.export import ExportType, Schema, get_export_args
 
@@ -13,8 +12,11 @@ from app.utils.export import ExportType, Schema, get_export_args
 class Pagination(TypedDict):
     page: int
     page_size: int
-    total_items: int
     total_pages: int
+
+    items_count: int
+    total_items_count: int
+
     has_next: bool
     has_previous: bool
 
@@ -27,38 +29,32 @@ class ObjectResponse[T](BaseModel):
         return "object"
 
 
-class ArrayResponse[T: (list, set, tuple)](BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+class ArrayResponse[T](BaseModel):
+    items: Sequence[T]
+    total_items_count: Annotated[int, Field(exclude=True)]
 
-    items: T
-
-    request: Annotated[Request, Field(exclude=True)]
-    items_count: Annotated[int, Field(exclude=True)] = 0
-    skip: Annotated[int, Field(exclude=True)] = 0
+    page: Annotated[int, Field(exclude=True)]
+    page_size: Annotated[int, Field(exclude=True)]
 
     @property
-    def page_size(self) -> int:
+    def items_count(self) -> int:
         return len(self.items)
 
     @property
     def total_pages(self) -> int:
-        return math.ceil(self.items_count / self.page_size)
-
-    @property
-    def page(self) -> int:
-        return self.skip // self.page_size + 1
+        return math.ceil(self.total_items_count / self.page_size)
 
     @property
     def has_next(self) -> bool:
         return self.page < self.total_pages
 
     @property
-    def has_previous(self) -> bool:
-        return self.page > 1
-
-    @property
     def next_page(self) -> int:
         return self.page + 1 if self.has_next else self.page
+
+    @property
+    def has_previous(self) -> bool:
+        return self.page > 1
 
     @property
     def previous_page(self) -> int:
@@ -73,8 +69,9 @@ class ArrayResponse[T: (list, set, tuple)](BaseModel):
         return {
             "page": self.page,
             "page_size": self.page_size,
-            "total_items": self.items_count,
             "total_pages": self.total_pages,
+            "items_count": self.items_count,
+            "total_items_count": self.total_items_count,
             "has_next": self.has_next,
             "has_previous": self.has_previous,
         }

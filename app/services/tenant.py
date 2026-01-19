@@ -47,9 +47,12 @@ class Schema(Protocol):
     def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
-class SkipLimitParams(Protocol):
-    skip: int
-    limit: int
+class Pagination(Protocol):
+    @property
+    def offset(self) -> int: ...
+
+    @property
+    def limit(self) -> int: ...
 
 
 class TenantService:
@@ -61,7 +64,7 @@ class TenantService:
         order_by: list[OrderBy] | None = None,
         filter_schema: Schema | None = None,
         filtering_kind: Literal["and", "or"] = "and",
-        pagination_schema: SkipLimitParams | None = None,
+        pagination_schema: Pagination | None = None,
     ) -> tuple[list[TenantDB], int]:
         query = self._db.query(TenantDB)
 
@@ -76,7 +79,7 @@ class TenantService:
         count = query.count()
 
         if pagination_schema:
-            query = query.offset(pagination_schema.skip).limit(pagination_schema.limit)
+            query = query.offset(pagination_schema.offset).limit(pagination_schema.limit)
 
         return query.all(), count
 

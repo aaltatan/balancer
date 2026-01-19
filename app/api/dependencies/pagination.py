@@ -8,26 +8,21 @@ from app.core.config import get_config
 config = get_config()
 
 
-class SkipLimitParams(BaseModel):
-    skip: Annotated[int, Field(ge=0)]
-    limit: Annotated[int, Field(ge=1, le=config.default_max_limit)]
+class Pagination(BaseModel):
+    page: Annotated[int, Field(ge=1)] = 1
+    page_size: Annotated[int, Field(ge=1, le=config.max_page_size)] = config.page_size
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
+
+    @property
+    def limit(self) -> int:
+        return self.page_size
 
 
-def get_skip_limit_params(
-    skip: Annotated[
-        int,
-        Query(
-            ge=0,
-            description="Number of items to skip",
-        ),
-    ] = config.default_skip,
-    limit: Annotated[
-        int,
-        Query(
-            ge=1,
-            le=config.default_max_limit,
-            description="Number of items to return",
-        ),
-    ] = config.default_limit,
-) -> SkipLimitParams:
-    return SkipLimitParams(skip=skip, limit=limit)
+def get_pagination(
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=config.max_page_size)] = config.page_size,
+) -> Pagination:
+    return Pagination(page=page, page_size=page_size)
