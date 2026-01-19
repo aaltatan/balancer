@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, Request, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
-from app.api.dependencies.pagination import SkipLimitParams, get_skip_limit_params
+from app.api.dependencies.pagination import Pagination, get_pagination
 from app.api.response import ArrayResponse, ObjectResponse
 from app.models.tenant import TenantCreate, TenantFilter, TenantRead, TenantUpdate
 from app.services.tenant import OrderBy, TenantService
@@ -54,14 +54,18 @@ router = APIRouter()
 def get_all(  # noqa: PLR0913
     request: Request,
     service: Annotated[TenantService, Depends(get_tenant_service)],
-    pagination: Annotated[SkipLimitParams, Depends(get_skip_limit_params)],
+    pagination: Annotated[Pagination, Depends(get_pagination)],
     filter_schema: Annotated[TenantFilter, Depends(get_filter_schema)],
     filtering_kind: Annotated[Literal["and", "or"], Query()] = "and",
     order_by: list[OrderBy] = Query(default=[OrderBy.NAME_ASC]),  # noqa: B008, FAST002
 ):
-    items, items_count = service.get_all(order_by, filter_schema, filtering_kind, pagination)
+    items, total_items_count = service.get_all(order_by, filter_schema, filtering_kind, pagination)
     return ArrayResponse(
-        items=items, request=request, items_count=items_count, skip=pagination.skip
+        items=items,
+        total_items_count=total_items_count,
+        request=request,
+        page=pagination.page,
+        page_size=pagination.page_size,
     )
 
 
