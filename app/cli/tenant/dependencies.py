@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from typer_di import Depends
 
 from app.db import get_db
-from app.models.tenant import TenantCreate, TenantUpdate
+from app.schemas.tenant import TenantCreateSchema, TenantUpdateSchema
 from app.services.tenant import TenantService
 
 from .inputs import (
@@ -42,9 +42,9 @@ def get_create_schema(  # noqa: PLR0913
     country: CountryOpt = "",
     phone: PhoneOpt = "",
     notes: NotesOpt = "",
-) -> TenantCreate:
+) -> TenantCreateSchema:
     try:
-        return TenantCreate(
+        return TenantCreateSchema(
             name=name,
             code=code,
             valid_until=valid_until,
@@ -66,9 +66,9 @@ def get_update_schema(  # noqa: PLR0913
     country: OptionalCountryOpt = None,
     phone: OptionalPhoneOpt = None,
     notes: OptionalNotesOpt = None,
-) -> TenantUpdate:
+) -> TenantUpdateSchema:
     try:
-        return TenantUpdate(
+        return TenantUpdateSchema(
             name=name,
             valid_until=valid_until,
             address=address,

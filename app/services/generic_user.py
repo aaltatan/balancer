@@ -1,21 +1,11 @@
 from collections.abc import Callable
-from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
 from app.db import PermissionDB, Role, TenantDB, UserDB
-from app.exceptions import AlreadyExistsError
+from app.exceptions import UserAlreadyExistsError
 
-
-class UserCreate(Protocol):
-    username: str
-    permissions: set[Any]
-
-    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
-
-
-class UserUpdate(Protocol):
-    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
+from ._interfaces import IUpdateSchema, IUserCreateSchema
 
 
 class GenericUserService:
@@ -26,7 +16,7 @@ class GenericUserService:
     def create(
         self,
         *,
-        schema: UserCreate,
+        schema: IUserCreateSchema,
         plain_password: str,
         role: Role,
         tenant: TenantDB | None = None,
@@ -39,8 +29,7 @@ class GenericUserService:
         user_db_exists = user_db_exists_query.first()
 
         if user_db_exists:
-            message = "Unable to create account. Please try different credentials."
-            raise AlreadyExistsError(message)
+            raise UserAlreadyExistsError
 
         schema_dict = schema.model_dump()
 
@@ -61,7 +50,7 @@ class GenericUserService:
 
         return user_db
 
-    def update(self, user_db: UserDB, schema: UserUpdate) -> UserDB:
+    def update(self, user_db: UserDB, schema: IUpdateSchema) -> UserDB:
         for key, value in schema.model_dump().items():
             if value is not None:
                 setattr(user_db, key, value)

@@ -1,5 +1,4 @@
 from enum import StrEnum
-from typing import Any, Literal, Protocol
 
 from sqlalchemy import asc, desc
 from sqlalchemy.orm import Session
@@ -7,6 +6,14 @@ from sqlalchemy.orm import Session
 from app.db.tenant import TenantDB
 from app.exceptions import AlreadyExistsError, CannotDeleteError, NotFoundError
 from app.filters import get_criterion, get_order_by
+
+from ._interfaces import (
+    FilteringType,
+    ICreateSchema,
+    IFilterSchema,
+    IPaginationSchema,
+    IUpdateSchema,
+)
 
 
 class OrderBy(StrEnum):
@@ -43,18 +50,6 @@ FILTERS_FIELDS_MAPPER = {
 }
 
 
-class Schema(Protocol):
-    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
-
-
-class Pagination(Protocol):
-    @property
-    def offset(self) -> int: ...
-
-    @property
-    def limit(self) -> int: ...
-
-
 class TenantService:
     def __init__(self, session: Session) -> None:
         self._db = session
@@ -62,9 +57,9 @@ class TenantService:
     def get_all(
         self,
         order_by: list[OrderBy] | None = None,
-        filter_schema: Schema | None = None,
-        filtering_kind: Literal["and", "or"] = "and",
-        pagination_schema: Pagination | None = None,
+        filter_schema: IFilterSchema | None = None,
+        filtering_kind: FilteringType = "and",
+        pagination_schema: IPaginationSchema | None = None,
     ) -> tuple[list[TenantDB], int]:
         query = self._db.query(TenantDB)
 
@@ -87,18 +82,16 @@ class TenantService:
         tenant = self._db.query(TenantDB).filter(TenantDB.code == code).first()
 
         if not tenant:
-            message = f"Tenant with code '{code}' not found."
-            raise NotFoundError(message)
+            raise NotFoundError(object_name="tenant", fieldname="code", field_value=code)
 
         return tenant
 
-    def create(self, schema: Schema) -> TenantDB:
+    def create(self, schema: ICreateSchema) -> TenantDB:
         code = schema.model_dump()["code"]
         tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.code == code).first()
 
         if tenant_db_exists:
-            message = f"Tenant with uid '{code}' already exists."
-            raise AlreadyExistsError(message)
+            raise AlreadyExistsError(object_name="tenant", fieldname="code")
 
         tenant_db = TenantDB(**schema.model_dump())
 
@@ -107,7 +100,7 @@ class TenantService:
 
         return tenant_db
 
-    def update(self, code: str, schema: Schema) -> TenantDB:
+    def update(self, code: str, schema: IUpdateSchema) -> TenantDB:
         tenant_db = self.get_by_code(code)
 
         for key, value in schema.model_dump().items():
@@ -145,8 +138,7 @@ class TenantService:
         tenant_db = self.get_by_code(code)
 
         if tenant_db.users:
-            message = f"Cannot delete tenant with code '{code}' because it has users."
-            raise CannotDeleteError(message)
+            raise CannotDeleteError(object_name="tenant", fieldname="code", field_value=code)
 
         self._db.delete(tenant_db)
         self._db.commit()

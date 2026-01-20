@@ -5,13 +5,13 @@ from pydantic import BaseModel, model_validator
 from ._fields import PasswordFld
 
 
-class AccessToken(BaseModel):
+class AccessTokenSchema(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
 
 
-class ChangePassword(BaseModel):
+class ChangePasswordSchema(BaseModel):
     old_password: PasswordFld
     new_password: PasswordFld
     confirm_password: PasswordFld

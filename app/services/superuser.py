@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.db import UserDB
 from app.exceptions import NotFoundError
 
-from .generic_user import GenericUserService, UserCreate, UserUpdate
+from ._interfaces import IUpdateSchema, IUserCreateSchema
+from .generic_user import GenericUserService
 
 
 class SuperuserService:
@@ -22,17 +23,14 @@ class SuperuserService:
         )
 
         if not user:
-            message = f"User with username '{username}' not found."
-            raise NotFoundError(message)
+            raise NotFoundError(object_name="user", fieldname="username", field_value=username)
 
         return user
 
-    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
-        return self._service.create(
-            schema=schema, plain_password=plain_password, role="superuser"
-        )
+    def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
+        return self._service.create(schema=schema, plain_password=plain_password, role="superuser")
 
-    def update(self, username: str, schema: UserUpdate) -> UserDB:
+    def update(self, username: str, schema: IUpdateSchema) -> UserDB:
         superuser = self._get_superuser(username)
         return self._service.update(superuser, schema)
 

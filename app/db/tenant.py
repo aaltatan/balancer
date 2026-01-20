@@ -6,7 +6,7 @@ from sqlalchemy import DATE, TIMESTAMP, UUID, Boolean, ColumnElement, String, fu
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.utils.timezone import get_default_tz_now
+from app.core.timezone import get_default_tz_now
 
 from ._schema import Base
 

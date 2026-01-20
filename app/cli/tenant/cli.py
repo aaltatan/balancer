@@ -6,7 +6,7 @@ from typer_di import Depends, TyperDI
 
 from app.cli.dependencies import get_console
 from app.exceptions import AlreadyExistsError, CannotDeleteError, NotFoundError
-from app.models.tenant import TenantCreate, TenantUpdate
+from app.schemas.tenant import TenantCreateSchema, TenantUpdateSchema
 from app.services.tenant import TenantService
 
 from .dependencies import get_create_schema, get_tenant_service, get_update_schema
@@ -35,7 +35,7 @@ def list_tenants(
 def create_tenant(
     console: Console = Depends(get_console),
     service: TenantService = Depends(get_tenant_service),
-    create_schema: TenantCreate = Depends(get_create_schema),
+    create_schema: TenantCreateSchema = Depends(get_create_schema),
 ):
     try:
         tenant_db = service.create(create_schema)
@@ -50,7 +50,7 @@ def update_tenant(
     code: CodeArg,
     console: Console = Depends(get_console),
     service: TenantService = Depends(get_tenant_service),
-    update_schema: TenantUpdate = Depends(get_update_schema),
+    update_schema: TenantUpdateSchema = Depends(get_update_schema),
 ):
     try:
         tenant_db = service.update(code, update_schema)

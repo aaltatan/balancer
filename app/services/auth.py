@@ -1,19 +1,38 @@
 # ruff: noqa: PLR0913, S106
 from collections.abc import Callable
-from typing import Any, TypedDict
+from datetime import UTC, datetime, timedelta
+from typing import Any, Literal, TypedDict
 
+import jwt
 from sqlalchemy.orm import Session
 
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
-from app.exceptions import AuthenticationError
-from app.utils.security import create_access_token
+from app.exceptions import InvalidPasswordError
 
 
 class AccessToken(TypedDict):
     access_token: str
     refresh_token: str
     token_type: str
+
+
+def _create_access_token(
+    data: dict[str, Any],
+    expires_delta: int,
+    expire_type: Literal["weeks", "days", "hours", "minutes"],
+    token_type: Literal["access", "refresh"],
+    secret_key: str,
+    algorithm: str,
+) -> str:
+    to_encode = data.copy()
+    to_encode.update(
+        {
+            "exp": datetime.now(UTC) + timedelta(**{expire_type: expires_delta}),
+            "token_type": token_type,
+        }
+    )
+    return jwt.encode(to_encode, secret_key, algorithm=algorithm)
 
 
 def get_tokens(
@@ -32,7 +51,7 @@ def get_tokens(
     else:
         data["tenant"] = None
 
-    access_token = create_access_token(
+    access_token = _create_access_token(
         data=data,
         expires_delta=access_token_expires_in_minutes,
         expire_type="minutes",
@@ -41,7 +60,7 @@ def get_tokens(
         algorithm=algorithm,
     )
 
-    refresh_token = create_access_token(
+    refresh_token = _create_access_token(
         data=data,
         expires_delta=refresh_token_expires_in_days,
         expire_type="days",
@@ -61,8 +80,7 @@ def change_user_password(
     verifier_fn: Callable[[str, str], bool],
 ) -> UserDB:
     if not verifier_fn(old_password, user.hashed_password):
-        message = f"Invalid password for user '{user.username}'."
-        raise AuthenticationError(message)
+        raise InvalidPasswordError(user.username)
 
     user.hashed_password = new_hashed_password
     db.commit()

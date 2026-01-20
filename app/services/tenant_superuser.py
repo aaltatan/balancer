@@ -2,9 +2,18 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import UserDB
 from app.db.tenant import TenantDB
-from app.exceptions import AlreadyExistsError, NotFoundError
+from app.exceptions import BulkNotFoundError, NotFoundError, UserAlreadyExistsError
+from app.filters import get_criterion, get_order_by
 
-from .generic_user import GenericUserService, UserCreate, UserUpdate
+from ._interfaces import (
+    FilteringType,
+    IFilterSchema,
+    IPaginationSchema,
+    IUpdateSchema,
+    IUserCreateSchema,
+)
+from .generic_user import GenericUserService
+from .user import FILTERS_FIELDS_MAPPER, ORDER_BY_FIELDS_MAPPER, OrderBy
 
 
 class TenantSuperuserService:
@@ -15,8 +24,29 @@ class TenantSuperuserService:
         self._generic_service = generic_service
         self._tenant = tenant
 
-    def get_all(self) -> list[UserDB]:
-        return self._db.query(UserDB).filter(UserDB.is_tenant_superuser).all()
+    def get_all(
+        self,
+        order_by: list[OrderBy] | None = None,
+        filter_schema: IFilterSchema | None = None,
+        filtering_kind: FilteringType = "and",
+        pagination_schema: IPaginationSchema | None = None,
+    ) -> tuple[list[UserDB], int]:
+        query = self._db.query(UserDB)
+
+        if order_by:
+            query = query.order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
+
+        if filter_schema:
+            query = query.filter(
+                get_criterion(FILTERS_FIELDS_MAPPER, filter_schema, kind=filtering_kind)
+            )
+
+        count = query.count()
+
+        if pagination_schema:
+            query = query.offset(pagination_schema.offset).limit(pagination_schema.limit)
+
+        return query.all(), count
 
     def get_by_username(self, username: str) -> UserDB:
         user = (
@@ -30,8 +60,7 @@ class TenantSuperuserService:
         )
 
         if not user:
-            message = f"User with username '{username}' not found."
-            raise NotFoundError(message)
+            raise NotFoundError(object_name="user", fieldname="username", field_value=username)
 
         return user
 
@@ -41,12 +70,11 @@ class TenantSuperuserService:
         )
 
         if not query.all():
-            message = f"User(s) with username(s) '{', '.join(usernames)}' not found."
-            raise NotFoundError(message)
+            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
 
         return query
 
-    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
+    def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
         user_db_exists = (
             self._db.query(UserDB)
             .filter(UserDB.username == schema.username, UserDB.tenant == self._tenant)
@@ -54,8 +82,7 @@ class TenantSuperuserService:
         )
 
         if user_db_exists:
-            message = "Unable to create account. Please try different credentials."
-            raise AlreadyExistsError(message)
+            raise UserAlreadyExistsError
 
         return self._generic_service.create(
             schema=schema,
@@ -64,7 +91,7 @@ class TenantSuperuserService:
             tenant=self._tenant,
         )
 
-    def update(self, username: str, schema: UserUpdate) -> UserDB:
+    def update(self, username: str, schema: IUpdateSchema) -> UserDB:
         user_db = self.get_by_username(username)
         return self._generic_service.update(user_db, schema)
 

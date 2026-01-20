@@ -23,7 +23,7 @@ class FieldNotInMapperError(Exception):
         super().__init__(*args)
 
 
-class FilterSchema(Protocol):
+class IFilterSchema(Protocol):
     def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
@@ -54,7 +54,7 @@ def get_order_by[T: StrEnum](order_by: list[T], mapper: dict[T, UnaryExpression[
 
 def get_criterion(
     fields_mapper: FieldsMapper,
-    schema: FilterSchema,
+    schema: IFilterSchema,
     *,
     kind: Literal["and", "or"] = "and",
     **custom_modifiers: ModifierFn,

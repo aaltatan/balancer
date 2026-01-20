@@ -7,19 +7,20 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.api import auth, v1
 from app.core.config import get_config
 from app.core.exception_handlers import (
-    already_exists_error_handler,
-    authentication_error_handler,
-    cannot_delete_error_handler,
-    not_found_error_handler,
+    bad_request_400_error_handler,
+    conflict_409_error_handler,
+    not_found_404_error_handler,
 )
 from app.core.middlewares import profiler_middleware
 from app.db import SessionLocal, init_db
 from app.db.permission import init_permissions
 from app.exceptions import (
     AlreadyExistsError,
-    AuthenticationError,
+    BulkNotFoundError,
     CannotDeleteError,
+    InvalidPasswordError,
     NotFoundError,
+    UserAlreadyExistsError,
 )
 
 
@@ -55,10 +56,12 @@ if config.debug:
 
 # exception handlers
 
-app.add_exception_handler(AlreadyExistsError, already_exists_error_handler)
-app.add_exception_handler(AuthenticationError, authentication_error_handler)
-app.add_exception_handler(NotFoundError, not_found_error_handler)
-app.add_exception_handler(CannotDeleteError, cannot_delete_error_handler)
+app.add_exception_handler(AlreadyExistsError, conflict_409_error_handler)
+app.add_exception_handler(InvalidPasswordError, bad_request_400_error_handler)
+app.add_exception_handler(NotFoundError, not_found_404_error_handler)
+app.add_exception_handler(CannotDeleteError, conflict_409_error_handler)
+app.add_exception_handler(BulkNotFoundError, not_found_404_error_handler)
+app.add_exception_handler(UserAlreadyExistsError, conflict_409_error_handler)
 
 # routers
 

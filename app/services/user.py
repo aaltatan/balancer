@@ -1,10 +1,66 @@
+from enum import StrEnum
+
 from sqlalchemy.orm import Query, Session
 
 from app.db import Permission, TenantDB, UserDB
 from app.db.permission import PermissionDB
-from app.exceptions import NotFoundError
+from app.exceptions import BulkNotFoundError, NotFoundError
+from app.filters import get_criterion, get_order_by
 
-from .generic_user import GenericUserService, UserCreate, UserUpdate
+from ._interfaces import (
+    FilteringType,
+    IFilterSchema,
+    IPaginationSchema,
+    IUpdateSchema,
+    IUserCreateSchema,
+)
+from .generic_user import GenericUserService
+
+
+class OrderBy(StrEnum):
+    USERNAME_ASC = "username"
+    USERNAME_DESC = "username (desc)"
+    FIRSTNAME_ASC = "firstname"
+    FIRSTNAME_DESC = "firstname (desc)"
+    LASTNAME_ASC = "lastname"
+    LASTNAME_DESC = "lastname (desc)"
+    IS_ACTIVE_ASC = "is active"
+    IS_ACTIVE_DESC = "is active (desc)"
+    ROLE_ASC = "role"
+    ROLE_DESC = "role (desc)"
+    CREATED_AT_ASC = "created at"
+    CREATED_AT_DESC = "created at (desc)"
+    UPDATED_AT_ASC = "updated at"
+    UPDATED_AT_DESC = "updated at (desc)"
+
+
+ORDER_BY_FIELDS_MAPPER = {
+    OrderBy.USERNAME_ASC: UserDB.username,
+    OrderBy.USERNAME_DESC: UserDB.username.desc(),
+    OrderBy.FIRSTNAME_ASC: UserDB.firstname,
+    OrderBy.FIRSTNAME_DESC: UserDB.firstname.desc(),
+    OrderBy.LASTNAME_ASC: UserDB.lastname,
+    OrderBy.LASTNAME_DESC: UserDB.lastname.desc(),
+    OrderBy.IS_ACTIVE_ASC: UserDB.is_active,
+    OrderBy.IS_ACTIVE_DESC: UserDB.is_active.desc(),
+    OrderBy.ROLE_ASC: UserDB.role,
+    OrderBy.ROLE_DESC: UserDB.role.desc(),
+    OrderBy.CREATED_AT_ASC: UserDB.created_at,
+    OrderBy.CREATED_AT_DESC: UserDB.created_at.desc(),
+    OrderBy.UPDATED_AT_ASC: UserDB.updated_at,
+    OrderBy.UPDATED_AT_DESC: UserDB.updated_at.desc(),
+}
+
+
+FILTERS_FIELDS_MAPPER = {
+    "username": UserDB.username,
+    "firstname": UserDB.firstname,
+    "lastname": UserDB.lastname,
+    "is_active": UserDB.is_active,
+    "role": UserDB.role,
+    "created_at": UserDB.created_at,
+    "updated_at": UserDB.updated_at,
+}
 
 
 class UserService:
@@ -15,12 +71,29 @@ class UserService:
         self._generic_service = generic_service
         self._tenant = tenant
 
-    def get_all(self) -> list[UserDB]:
-        return (
-            self._db.query(UserDB)
-            .filter(UserDB.tenant == self._tenant, UserDB.is_tenant_user)
-            .all()
-        )
+    def get_all(
+        self,
+        order_by: list[OrderBy] | None = None,
+        filter_schema: IFilterSchema | None = None,
+        filtering_kind: FilteringType = "and",
+        pagination_schema: IPaginationSchema | None = None,
+    ) -> tuple[list[UserDB], int]:
+        query = self._db.query(UserDB)
+
+        if order_by:
+            query = query.order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
+
+        if filter_schema:
+            query = query.filter(
+                get_criterion(FILTERS_FIELDS_MAPPER, filter_schema, kind=filtering_kind)
+            )
+
+        count = query.count()
+
+        if pagination_schema:
+            query = query.offset(pagination_schema.offset).limit(pagination_schema.limit)
+
+        return query.all(), count
 
     def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
         query = self._db.query(UserDB).filter(
@@ -28,8 +101,7 @@ class UserService:
         )
 
         if not query.all():
-            message = f"User(s) with username(s) '{', '.join(usernames)}' not found."
-            raise NotFoundError(message)
+            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
 
         return query
 
@@ -43,8 +115,7 @@ class UserService:
         )
 
         if not user:
-            message = f"User with username '{username}' not found."
-            raise NotFoundError(message)
+            raise NotFoundError(object_name="user", fieldname="username", field_value=username)
 
         return user
 
@@ -82,12 +153,12 @@ class UserService:
         self._db.delete(query)
         self._db.commit()
 
-    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
+    def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
         return self._generic_service.create(
             schema=schema, plain_password=plain_password, role="tenant-user", tenant=self._tenant
         )
 
-    def update(self, username: str, schema: UserUpdate) -> UserDB:
+    def update(self, username: str, schema: IUpdateSchema) -> UserDB:
         user_db = self.get_by_username(username)
         return self._generic_service.update(user_db, schema)
 

@@ -4,8 +4,8 @@ from rich.console import Console
 from typer_di import Depends, TyperDI
 
 from app.cli.dependencies import get_console
-from app.exceptions import AlreadyExistsError, NotFoundError
-from app.models.user import ResetPassword, UserCreate, UserUpdate
+from app.exceptions import NotFoundError, UserAlreadyExistsError
+from app.schemas.user import ResetPasswordSchema, UserCreateSchema, UserUpdateSchema
 from app.services.superuser import SuperuserService
 
 from .dependencies import (
@@ -41,14 +41,14 @@ def list_superusers(
 @app.command(name="create")
 def create_superuser(
     console: Console = Depends(get_console),
-    create_schema: UserCreate = Depends(get_create_schema),
+    create_schema: UserCreateSchema = Depends(get_create_schema),
     superuser_service: SuperuserService = Depends(get_superuser_service),
 ) -> None:
     try:
         superuser_db = superuser_service.create(
             schema=create_schema, plain_password=create_schema.password.get_secret_value()
         )
-    except AlreadyExistsError as e:
+    except UserAlreadyExistsError as e:
         raise typer.BadParameter(str(e)) from e
 
     console.print(
@@ -60,7 +60,7 @@ def create_superuser(
 def update_superuser(
     username: UsernameArg,
     console: Console = Depends(get_console),
-    update_schema: UserUpdate = Depends(get_user_update_schema),
+    update_schema: UserUpdateSchema = Depends(get_user_update_schema),
     superuser_service: SuperuserService = Depends(get_superuser_service),
 ):
     try:
@@ -124,7 +124,7 @@ def reset_superuser_password(
     username: UsernameArg,
     console: Console = Depends(get_console),
     superuser_service: SuperuserService = Depends(get_superuser_service),
-    schema: ResetPassword = Depends(get_reset_password_schema),
+    schema: ResetPasswordSchema = Depends(get_reset_password_schema),
 ):
     try:
         superuser = superuser_service.reset_password(

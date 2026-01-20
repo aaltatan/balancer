@@ -6,8 +6,13 @@ from fastapi import APIRouter, Depends, Query, status
 from app.api.dependencies.auth import RequireSuperuserDI
 from app.api.dependencies.db import SessionDI
 from app.api.dependencies.pagination import Pagination, get_pagination
-from app.api.response import ArrayResponse, ObjectResponse
-from app.models.tenant import TenantCreate, TenantFilter, TenantRead, TenantUpdate
+from app.api.response import ObjectResponse, PageResponse
+from app.schemas.tenant import (
+    TenantCreateSchema,
+    TenantFilterSchema,
+    TenantReadSchema,
+    TenantUpdateSchema,
+)
 from app.services.tenant import OrderBy, TenantService
 
 
@@ -29,8 +34,8 @@ def get_filter_schema(  # noqa: PLR0913
     valid_until__gte: Annotated[datetime | None, Query()] = None,
     valid_until__lt: Annotated[datetime | None, Query()] = None,
     valid_until__lte: Annotated[datetime | None, Query()] = None,
-) -> TenantFilter:
-    return TenantFilter(
+) -> TenantFilterSchema:
+    return TenantFilterSchema(
         search__contains=search__contains,
         search__notcontains=search__notcontains,
         code__eq=code__eq,
@@ -50,16 +55,16 @@ def get_filter_schema(  # noqa: PLR0913
 router = APIRouter()
 
 
-@router.get("/", response_model=ArrayResponse[TenantRead])
+@router.get("/", response_model=PageResponse[TenantReadSchema])
 def get_all(
     service: Annotated[TenantService, Depends(get_tenant_service)],
     pagination: Annotated[Pagination, Depends(get_pagination)],
-    filter_schema: Annotated[TenantFilter, Depends(get_filter_schema)],
+    filter_schema: Annotated[TenantFilterSchema, Depends(get_filter_schema)],
     filtering_kind: Annotated[Literal["and", "or"], Query()] = "and",
     order_by: list[OrderBy] = Query(default=[OrderBy.NAME_ASC]),  # noqa: B008, FAST002
 ):
     items, total_items_count = service.get_all(order_by, filter_schema, filtering_kind, pagination)
-    return ArrayResponse(
+    return PageResponse(
         items=items,
         total_items_count=total_items_count,
         page=pagination.page,
@@ -69,38 +74,41 @@ def get_all(
 
 @router.post(
     "/",
-    response_model=ObjectResponse[TenantRead],
+    response_model=ObjectResponse[TenantReadSchema],
     status_code=status.HTTP_201_CREATED,
     dependencies=[RequireSuperuserDI],
 )
 def create(
-    service: Annotated[TenantService, Depends(get_tenant_service)], create_schema: TenantCreate
+    service: Annotated[TenantService, Depends(get_tenant_service)],
+    create_schema: TenantCreateSchema,
 ):
     return ObjectResponse(item=service.create(create_schema))
 
 
-@router.get("/{code}", response_model=ObjectResponse[TenantRead], dependencies=[RequireSuperuserDI])
+@router.get(
+    "/{code}", response_model=ObjectResponse[TenantReadSchema], dependencies=[RequireSuperuserDI]
+)
 def get_by_code(service: Annotated[TenantService, Depends(get_tenant_service)], code: str):
     return ObjectResponse(item=service.get_by_code(code))
 
 
 @router.put(
     "/{code}",
-    response_model=ObjectResponse[TenantRead],
+    response_model=ObjectResponse[TenantReadSchema],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
 def update(
     service: Annotated[TenantService, Depends(get_tenant_service)],
     code: str,
-    update_schema: TenantUpdate,
+    update_schema: TenantUpdateSchema,
 ):
     return ObjectResponse(item=service.update(code, update_schema))
 
 
 @router.patch(
     "/{code}/activate",
-    response_model=ObjectResponse[TenantRead],
+    response_model=ObjectResponse[TenantReadSchema],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )
@@ -110,7 +118,7 @@ def activate(service: Annotated[TenantService, Depends(get_tenant_service)], cod
 
 @router.patch(
     "/{code}/deactivate",
-    response_model=ObjectResponse[TenantRead],
+    response_model=ObjectResponse[TenantReadSchema],
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireSuperuserDI],
 )

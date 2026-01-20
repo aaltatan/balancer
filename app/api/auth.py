@@ -11,8 +11,8 @@ from app.api.dependencies.hash import PWDHasherFnDI, PWDVerifierFnDI
 from app.constants import LOGIN_USERNAME_REGEX
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
-from app.models.auth import AccessToken, ChangePassword
-from app.models.user import UserReadWithTenant
+from app.schemas.auth import AccessTokenSchema, ChangePasswordSchema
+from app.schemas.user import UserReadWithTenant
 from app.services.auth import change_user_password, get_tokens
 
 router = APIRouter()
@@ -35,7 +35,7 @@ def forbidden_exc(kind: Literal["tenant", "user"]) -> HTTPException:
     )
 
 
-@router.post("/token", response_model=AccessToken)
+@router.post("/token", response_model=AccessTokenSchema)
 def login_superuser(
     config: ConfigDI,
     session: SessionDI,
@@ -81,7 +81,7 @@ def login_superuser(
 @router.patch("/change-password", response_model=UserReadWithTenant)
 def change_password(
     db: SessionDI,
-    schema: Annotated[ChangePassword, Form()],
+    schema: Annotated[ChangePasswordSchema, Form()],
     user: ActiveUserDI,
     verifier_fn: PWDVerifierFnDI,
     hasher_fn: PWDHasherFnDI,

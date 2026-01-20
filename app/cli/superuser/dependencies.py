@@ -8,10 +8,10 @@ from sqlalchemy.orm import Session
 from typer_di import Depends
 
 from app.db import get_db
-from app.models.user import ResetPassword, UserCreate, UserUpdate
+from app.dependencies import get_hasher_fn
+from app.schemas.user import ResetPasswordSchema, UserCreateSchema, UserUpdateSchema
 from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
-from app.utils.security import hash_password
 
 from .inputs import (
     FirstnameOpt,
@@ -21,10 +21,6 @@ from .inputs import (
     PasswordOpt,
     UsernameOpt,
 )
-
-
-def get_hasher_fn() -> Callable[[str], str]:
-    return hash_password
 
 
 def get_superuser_service(
@@ -37,9 +33,9 @@ def get_superuser_service(
 
 def get_create_schema(
     username: UsernameOpt, firstname: FirstnameOpt, lastname: LastnameOpt, password: PasswordOpt
-) -> UserCreate:
+) -> UserCreateSchema:
     try:
-        return UserCreate(
+        return UserCreateSchema(
             username=username, firstname=firstname, lastname=lastname, password=SecretStr(password)
         )
     except ValidationError as e:
@@ -48,15 +44,15 @@ def get_create_schema(
 
 def get_user_update_schema(
     firstname: OptionalFirstnameOpt = None, lastname: OptionalLastnameOpt = None
-) -> UserUpdate:
+) -> UserUpdateSchema:
     try:
-        return UserUpdate(firstname=firstname, lastname=lastname)
+        return UserUpdateSchema(firstname=firstname, lastname=lastname)
     except ValidationError as e:
         raise typer.BadParameter(str(e)) from e
 
 
-def get_reset_password_schema(new_password: PasswordOpt) -> ResetPassword:
+def get_reset_password_schema(new_password: PasswordOpt) -> ResetPasswordSchema:
     try:
-        return ResetPassword(new_password=SecretStr(new_password))
+        return ResetPasswordSchema(new_password=SecretStr(new_password))
     except ValidationError as e:
         raise typer.BadParameter(str(e)) from e

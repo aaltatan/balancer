@@ -6,7 +6,7 @@ from typing import Annotated, Self
 import pytz
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
-from app.utils.timezone import get_default_tz_now
+from app.core.timezone import get_default_tz_now
 
 
 def validate_code(code: str) -> str:
@@ -34,7 +34,7 @@ PhoneFld = Annotated[str, Field(min_length=14, max_length=255, examples=["009639
 NotesFld = Annotated[str, Field(max_length=255, examples=[""])]
 
 
-class TenantBase(BaseModel):
+class TenantBaseSchema(BaseModel):
     name: NameFld
     code: CodeFld
     valid_until: ValidUntilFld
@@ -54,7 +54,7 @@ class TenantBase(BaseModel):
         return self
 
 
-class _UserRead(BaseModel):
+class _UserReadSchema(BaseModel):
     uid: uuid.UUID
     fullname: str
     role: str
@@ -63,25 +63,25 @@ class _UserRead(BaseModel):
     updated_at: datetime
 
 
-class TenantExport(TenantBase):
+class TenantExportSchema(TenantBaseSchema):
     model_config = ConfigDict(from_attributes=True)
 
 
-class TenantRead(TenantBase):
+class TenantReadSchema(TenantBaseSchema):
     uid: uuid.UUID
     code: str
 
     created_at: datetime
     updated_at: datetime
 
-    users: list[_UserRead]
+    users: list[_UserReadSchema]
 
 
-class TenantCreate(TenantBase):
+class TenantCreateSchema(TenantBaseSchema):
     pass
 
 
-class TenantUpdate(BaseModel):
+class TenantUpdateSchema(BaseModel):
     name: NameFld | None = None
     valid_until: ValidUntilFld | None = None
 
@@ -92,7 +92,7 @@ class TenantUpdate(BaseModel):
     notes: NotesFld | None = None
 
 
-class TenantFilter(BaseModel):
+class TenantFilterSchema(BaseModel):
     search__contains: str | None
     search__notcontains: str | None
     code__eq: str | None

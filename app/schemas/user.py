@@ -48,17 +48,17 @@ LastnameFld = Annotated[
 ]
 
 
-class PermissionRead(BaseModel):
+class PermissionReadSchema(BaseModel):
     name: Permission
 
 
-class UserBase(BaseModel):
+class UserBaseSchema(BaseModel):
     username: UsernameFld
     firstname: FirstnameFld
     lastname: LastnameFld
 
 
-class UserReadWithoutRelations(UserBase):
+class UserReadWithoutRelationsSchema(UserBaseSchema):
     uid: uuid.UUID
     fullname: str
     role: Role
@@ -67,21 +67,21 @@ class UserReadWithoutRelations(UserBase):
     updated_at: datetime
 
 
-class _TenantRead(BaseModel):
+class _TenantReadSchema(BaseModel):
     uid: uuid.UUID
     name: str
     code: str
 
 
-class UserReadWithTenant(UserReadWithoutRelations):
-    tenant: _TenantRead | None = None
+class UserReadWithTenant(UserReadWithoutRelationsSchema):
+    tenant: _TenantReadSchema | None = None
 
 
-class UserRead(UserReadWithTenant):
-    permissions: list[PermissionRead] = Field(default_factory=list)
+class UserReadSchema(UserReadWithTenant):
+    permissions: list[PermissionReadSchema] = Field(default_factory=list)
 
 
-class UserCreate(UserBase):
+class UserCreateSchema(UserBaseSchema):
     password: PasswordFld
     permissions: Annotated[
         set[Permission],
@@ -89,10 +89,37 @@ class UserCreate(UserBase):
     ] = set()
 
 
-class UserUpdate(BaseModel):
+class UserUpdateSchema(BaseModel):
     firstname: FirstnameFld | None = None
     lastname: LastnameFld | None = None
 
 
-class ResetPassword(BaseModel):
+class ResetPasswordSchema(BaseModel):
     new_password: PasswordFld
+
+
+class UserFilterSchema(BaseModel):
+    search__contains: str | None
+    search__notcontains: str | None
+    username__eq: str | None
+    username__ne: str | None
+    firstname__eq: str | None
+    firstname__ne: str | None
+    lastname__eq: str | None
+    lastname__ne: str | None
+    is_active__eq: bool | None
+    is_active__ne: bool | None
+    role__eq: str | None
+    role__ne: str | None
+    created_at__eq: datetime | None
+    created_at__ne: datetime | None
+    created_at__gt: datetime | None
+    created_at__gte: datetime | None
+    created_at__lt: datetime | None
+    created_at__lte: datetime | None
+    updated_at__eq: datetime | None
+    updated_at__ne: datetime | None
+    updated_at__gt: datetime | None
+    updated_at__gte: datetime | None
+    updated_at__lt: datetime | None
+    updated_at__lte: datetime | None
