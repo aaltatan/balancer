@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 from app.db.user import UserDB
-from app.exceptions import AlreadyExistsError
+from app.exceptions import UserAlreadyExistsError
 from app.services.generic_user import GenericUserService
 from app.services.superuser import SuperuserService
 from sqlalchemy.orm import Session
@@ -99,7 +99,7 @@ def test_create(service: SuperuserService) -> None:
 
 
 def test_create_exists_username(service: SuperuserService) -> None:
-    with pytest.raises(AlreadyExistsError):
+    with pytest.raises(UserAlreadyExistsError):
         service.create(
             schema=MockCreateSchema(
                 username="admin1", firstname="Admin Admin", lastname="One One", permissions=set()
