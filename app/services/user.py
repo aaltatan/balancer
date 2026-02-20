@@ -72,7 +72,7 @@ class UserService:
         filtering_kind: FilteringType = "and",
         pagination_schema: IPaginationSchema | None = None,
     ) -> tuple[list[UserDB], int]:
-        query = self._db.query(UserDB)
+        query = self._db.query(UserDB).filter(UserDB.tenant == self._tenant)
 
         if order_by:
             query = query.order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
