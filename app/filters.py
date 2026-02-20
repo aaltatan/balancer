@@ -23,7 +23,7 @@ class FieldNotInMapperError(Exception):
         super().__init__(*args)
 
 
-class IFilterSchema(Protocol):
+class ISchema(Protocol):
     def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
@@ -54,7 +54,7 @@ def get_order_by[T: StrEnum](order_by: list[T], mapper: dict[T, UnaryExpression[
 
 def get_criterion(
     fields_mapper: FieldsMapper,
-    schema: IFilterSchema,
+    filter_schema: ISchema,
     *,
     kind: Literal["and", "or"] = "and",
     **custom_modifiers: ModifierFn,
@@ -63,7 +63,7 @@ def get_criterion(
 
     Args:
         fields_mapper (FieldsMapper): A dictionary of field names maps field names in DTO to SQLAlchemy attributes.
-        schema (FilterSchema): A FilterSchema instance.
+        filter_schema (FilterSchema): A FilterSchema instance.
         kind (Literal["and", "or"]): The kind of criterion to return. Defaults to "and".
         custom_modifiers (dict[str, ModifierFn]): A dictionary of custom modifiers.
 
@@ -87,7 +87,7 @@ def get_criterion(
 
     modifiers = {**GLOBAL_MODIFIERS, **custom_modifiers}
 
-    for full_fieldname, field_value in schema.model_dump().items():
+    for full_fieldname, field_value in filter_schema.model_dump().items():
         if field_value is not None:
             if "__" in full_fieldname:
                 fieldname, modifier = full_fieldname.split("__")
