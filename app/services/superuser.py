@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db import UserDB
 from app.exceptions import NotFoundError
 
-from ._interfaces import IUpdateSchema, IUserCreateSchema
+from ._interfaces import ISchema, IUserCreateSchema
 from .generic_user import GenericUserService
 
 
@@ -30,7 +30,7 @@ class SuperuserService:
     def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
         return self._service.create(schema=schema, plain_password=plain_password, role="superuser")
 
-    def update(self, username: str, schema: IUpdateSchema) -> UserDB:
+    def update(self, username: str, schema: ISchema) -> UserDB:
         superuser = self._get_superuser(username)
         return self._service.update(superuser, schema)
 

@@ -11,7 +11,7 @@ class IPaginationSchema(Protocol):
     def limit(self) -> int: ...
 
 
-class ICreateSchema(Protocol):
+class ISchema(Protocol):
     def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
 
 
@@ -19,12 +19,4 @@ class IUserCreateSchema(Protocol):
     username: str
     permissions: set[Any]
 
-    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
-
-
-class IUpdateSchema(Protocol):
-    def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...
-
-
-class IFilterSchema(Protocol):
     def model_dump(*args: Any, **kwargs: Any) -> dict[str, Any]: ...

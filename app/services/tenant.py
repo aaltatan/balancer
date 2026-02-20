@@ -7,13 +7,7 @@ from app.db.tenant import TenantDB
 from app.exceptions import AlreadyExistsError, CannotDeleteError, NotFoundError
 from app.filters import get_criterion, get_order_by
 
-from ._interfaces import (
-    FilteringType,
-    ICreateSchema,
-    IFilterSchema,
-    IPaginationSchema,
-    IUpdateSchema,
-)
+from ._interfaces import FilteringType, IPaginationSchema, ISchema
 
 
 class OrderBy(StrEnum):
@@ -57,7 +51,7 @@ class TenantService:
     def get_all(
         self,
         order_by: list[OrderBy] | None = None,
-        filter_schema: IFilterSchema | None = None,
+        filter_schema: ISchema | None = None,
         filtering_kind: FilteringType = "and",
         pagination_schema: IPaginationSchema | None = None,
     ) -> tuple[list[TenantDB], int]:
@@ -86,7 +80,7 @@ class TenantService:
 
         return tenant
 
-    def create(self, schema: ICreateSchema) -> TenantDB:
+    def create(self, schema: ISchema) -> TenantDB:
         code = schema.model_dump()["code"]
         tenant_db_exists = self._db.query(TenantDB).filter(TenantDB.code == code).first()
 
@@ -100,7 +94,7 @@ class TenantService:
 
         return tenant_db
 
-    def update(self, code: str, schema: IUpdateSchema) -> TenantDB:
+    def update(self, code: str, schema: ISchema) -> TenantDB:
         tenant_db = self.get_by_code(code)
 
         for key, value in schema.model_dump().items():

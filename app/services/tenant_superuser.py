@@ -5,29 +5,23 @@ from app.db.tenant import TenantDB
 from app.exceptions import BulkNotFoundError, NotFoundError, UserAlreadyExistsError
 from app.filters import get_criterion, get_order_by
 
-from ._interfaces import (
-    FilteringType,
-    IFilterSchema,
-    IPaginationSchema,
-    IUpdateSchema,
-    IUserCreateSchema,
-)
+from ._interfaces import FilteringType, IPaginationSchema, ISchema, IUserCreateSchema
 from .generic_user import GenericUserService
 from .user import FILTERS_FIELDS_MAPPER, ORDER_BY_FIELDS_MAPPER, OrderBy
 
 
 class TenantSuperuserService:
     def __init__(
-        self, session: Session, generic_service: GenericUserService, tenant: TenantDB
+        self, session: Session, user_service: GenericUserService, tenant: TenantDB
     ) -> None:
         self._db = session
-        self._generic_service = generic_service
+        self._service = user_service
         self._tenant = tenant
 
     def get_all(
         self,
         order_by: list[OrderBy] | None = None,
-        filter_schema: IFilterSchema | None = None,
+        filter_schema: ISchema | None = None,
         filtering_kind: FilteringType = "and",
         pagination_schema: IPaginationSchema | None = None,
     ) -> tuple[list[UserDB], int]:
@@ -84,29 +78,29 @@ class TenantSuperuserService:
         if user_db_exists:
             raise UserAlreadyExistsError
 
-        return self._generic_service.create(
+        return self._service.create(
             schema=schema,
             plain_password=plain_password,
             role="tenant-superuser",
             tenant=self._tenant,
         )
 
-    def update(self, username: str, schema: IUpdateSchema) -> UserDB:
+    def update(self, username: str, schema: ISchema) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.update(user_db, schema)
+        return self._service.update(user_db, schema)
 
     def activate(self, username: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.activate(user_db)
+        return self._service.activate(user_db)
 
     def deactivate(self, username: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.deactivate(user_db)
+        return self._service.deactivate(user_db)
 
     def delete(self, username: str) -> None:
         user_db = self.get_by_username(username)
-        return self._generic_service.delete(user_db)
+        return self._service.delete(user_db)
 
     def reset_password(self, username: str, plain_password: str) -> UserDB:
         user_db = self.get_by_username(username)
-        return self._generic_service.reset_password(user_db, plain_password)
+        return self._service.reset_password(user_db, plain_password)

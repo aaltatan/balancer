@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.db import PermissionDB, Role, TenantDB, UserDB
 from app.exceptions import UserAlreadyExistsError
 
-from ._interfaces import IUpdateSchema, IUserCreateSchema
+from ._interfaces import ISchema, IUserCreateSchema
 
 
 class GenericUserService:
@@ -50,7 +50,7 @@ class GenericUserService:
 
         return user_db
 
-    def update(self, user_db: UserDB, schema: IUpdateSchema) -> UserDB:
+    def update(self, user_db: UserDB, schema: ISchema) -> UserDB:
         for key, value in schema.model_dump().items():
             if value is not None:
                 setattr(user_db, key, value)
