@@ -89,21 +89,13 @@ class UserService:
 
         return query.all(), count
 
-    def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
-        query = self._db.query(UserDB).filter(
-            UserDB.tenant == self._tenant, UserDB.username.in_(usernames), UserDB.is_tenant_user
-        )
-
-        if not query.all():
-            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
-
-        return query
-
     def get_by_username(self, username: str) -> UserDB:
         user = (
             self._db.query(UserDB)
             .filter(
-                UserDB.tenant == self._tenant, UserDB.username == username, UserDB.is_tenant_user
+                UserDB.username == username,
+                UserDB.tenant == self._tenant,
+                UserDB.is_tenant_user,
             )
             .first()
         )
@@ -149,7 +141,10 @@ class UserService:
 
     def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
         return self._service.create(
-            schema=schema, plain_password=plain_password, role="tenant-user", tenant=self._tenant
+            schema=schema,
+            plain_password=plain_password,
+            role="tenant-user",
+            tenant=self._tenant,
         )
 
     def update(self, username: str, schema: ISchema) -> UserDB:
@@ -171,3 +166,13 @@ class UserService:
     def reset_password(self, username: str, plain_password: str) -> UserDB:
         user_db = self.get_by_username(username)
         return self._service.reset_password(user_db, plain_password)
+
+    def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
+        query = self._db.query(UserDB).filter(
+            UserDB.tenant == self._tenant, UserDB.username.in_(usernames), UserDB.is_tenant_user
+        )
+
+        if not query.all():
+            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
+
+        return query

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Query, Session
 
 from app.db import UserDB
 from app.db.tenant import TenantDB
-from app.exceptions import BulkNotFoundError, NotFoundError, UserAlreadyExistsError
+from app.exceptions import BulkNotFoundError, NotFoundError
 from app.filters import get_criterion, get_order_by
 
 from ._interfaces import FilteringType, IPaginationSchema, ISchema, IUserCreateSchema
@@ -47,8 +47,8 @@ class TenantSuperuserService:
             self._db.query(UserDB)
             .filter(
                 UserDB.username == username,
-                UserDB.is_tenant_superuser,
                 UserDB.tenant == self._tenant,
+                UserDB.is_tenant_superuser,
             )
             .first()
         )
@@ -58,26 +58,7 @@ class TenantSuperuserService:
 
         return user
 
-    def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
-        query = self._db.query(UserDB).filter(
-            UserDB.username.in_(usernames), UserDB.is_tenant_superuser
-        )
-
-        if not query.all():
-            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
-
-        return query
-
     def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
-        user_db_exists = (
-            self._db.query(UserDB)
-            .filter(UserDB.username == schema.username, UserDB.tenant == self._tenant)
-            .first()
-        )
-
-        if user_db_exists:
-            raise UserAlreadyExistsError
-
         return self._service.create(
             schema=schema,
             plain_password=plain_password,
@@ -104,3 +85,13 @@ class TenantSuperuserService:
     def reset_password(self, username: str, plain_password: str) -> UserDB:
         user_db = self.get_by_username(username)
         return self._service.reset_password(user_db, plain_password)
+
+    def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
+        query = self._db.query(UserDB).filter(
+            UserDB.username.in_(usernames), UserDB.is_tenant_superuser
+        )
+
+        if not query.all():
+            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
+
+        return query

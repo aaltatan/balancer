@@ -17,24 +17,6 @@ class AccessToken(TypedDict):
     token_type: str
 
 
-def _create_access_token(
-    data: dict[str, Any],
-    expires_delta: int,
-    expire_type: Literal["weeks", "days", "hours", "minutes"],
-    token_type: Literal["access", "refresh"],
-    secret_key: str,
-    algorithm: str,
-) -> str:
-    to_encode = data.copy()
-    to_encode.update(
-        {
-            "exp": datetime.now(UTC) + timedelta(**{expire_type: expires_delta}),
-            "token_type": token_type,
-        }
-    )
-    return jwt.encode(to_encode, secret_key, algorithm=algorithm)
-
-
 def get_tokens(
     user: UserDB,
     access_token_expires_in_minutes: int,
@@ -86,3 +68,21 @@ def change_user_password(
     db.commit()
 
     return user
+
+
+def _create_access_token(
+    data: dict[str, Any],
+    expires_delta: int,
+    expire_type: Literal["weeks", "days", "hours", "minutes"],
+    token_type: Literal["access", "refresh"],
+    secret_key: str,
+    algorithm: str,
+) -> str:
+    to_encode = data.copy()
+    to_encode.update(
+        {
+            "exp": datetime.now(UTC) + timedelta(**{expire_type: expires_delta}),
+            "token_type": token_type,
+        }
+    )
+    return jwt.encode(to_encode, secret_key, algorithm=algorithm)

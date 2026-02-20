@@ -15,18 +15,6 @@ class SuperuserService:
     def get_all(self) -> list[UserDB]:
         return self._db.query(UserDB).filter(UserDB.role == "superuser").all()
 
-    def _get_superuser(self, username: str) -> UserDB:
-        user = (
-            self._db.query(UserDB)
-            .filter(UserDB.role == "superuser", UserDB.username == username)
-            .first()
-        )
-
-        if not user:
-            raise NotFoundError(object_name="user", fieldname="username", field_value=username)
-
-        return user
-
     def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
         return self._service.create(schema=schema, plain_password=plain_password, role="superuser")
 
@@ -49,3 +37,15 @@ class SuperuserService:
     def reset_password(self, username: str, plain_password: str) -> UserDB:
         superuser = self._get_superuser(username)
         return self._service.reset_password(superuser, plain_password)
+
+    def _get_superuser(self, username: str) -> UserDB:
+        user = (
+            self._db.query(UserDB)
+            .filter(UserDB.role == "superuser", UserDB.username == username)
+            .first()
+        )
+
+        if not user:
+            raise NotFoundError(object_name="user", fieldname="username", field_value=username)
+
+        return user
