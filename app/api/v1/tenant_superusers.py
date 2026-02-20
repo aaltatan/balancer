@@ -28,9 +28,7 @@ def get_tenant_superuser_service(
     return TenantSuperuserService(db, GenericUserService(db, hasher_fn), tenant)
 
 
-@router.get(
-    "/", response_model=PageResponse[UserReadSchema], dependencies=[RequireSuperuserDI]
-)
+@router.get("/", response_model=PageResponse[UserReadSchema], dependencies=[RequireSuperuserDI])
 def get_all(
     service: Annotated[TenantSuperuserService, Depends(get_tenant_superuser_service)],
     filter_schema: Annotated[UserFilterSchema, Depends(get_user_filter_schema)],
