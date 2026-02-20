@@ -55,7 +55,7 @@ def get_filter_schema(  # noqa: PLR0913
 router = APIRouter()
 
 
-@router.get("/", response_model=PageResponse[TenantReadSchema])
+@router.get("/", response_model=PageResponse[TenantReadSchema], dependencies=[RequireSuperuserDI])
 def get_all(
     service: Annotated[TenantService, Depends(get_tenant_service)],
     pagination: Annotated[Pagination, Depends(get_pagination)],
