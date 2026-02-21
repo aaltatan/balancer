@@ -1,8 +1,8 @@
-from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm import Session
 
 from app.db import UserDB
 from app.db.tenant import TenantDB
-from app.exceptions import BulkNotFoundError, NotFoundError
+from app.exceptions import NotFoundError
 from app.filters import get_criterion, get_order_by
 
 from ._interfaces import FilteringType, IPaginationSchema, ISchema, IUserCreateSchema
@@ -11,12 +11,9 @@ from .user import FILTERS_FIELDS_MAPPER, ORDER_BY_FIELDS_MAPPER, OrderBy
 
 
 class TenantSuperuserService:
-    def __init__(
-        self, session: Session, user_service: GenericUserService, tenant: TenantDB
-    ) -> None:
+    def __init__(self, session: Session, user_service: GenericUserService) -> None:
         self._db = session
         self._service = user_service
-        self._tenant = tenant
 
     def get_all(
         self,
@@ -25,7 +22,7 @@ class TenantSuperuserService:
         filtering_kind: FilteringType = "and",
         pagination_schema: IPaginationSchema | None = None,
     ) -> tuple[list[UserDB], int]:
-        query = self._db.query(UserDB).filter(UserDB.tenant == self._tenant)
+        query = self._db.query(UserDB)
 
         if order_by:
             query = query.order_by(*get_order_by(order_by, ORDER_BY_FIELDS_MAPPER))
@@ -42,12 +39,12 @@ class TenantSuperuserService:
 
         return query.all(), count
 
-    def get_by_username(self, username: str) -> UserDB:
+    def get_by_username(self, username: str, tenant: TenantDB) -> UserDB:
         user = (
             self._db.query(UserDB)
             .filter(
                 UserDB.username == username,
-                UserDB.tenant == self._tenant,
+                UserDB.tenant == tenant,
                 UserDB.is_tenant_superuser,
             )
             .first()
@@ -58,40 +55,30 @@ class TenantSuperuserService:
 
         return user
 
-    def create(self, *, schema: IUserCreateSchema, plain_password: str) -> UserDB:
+    def create(self, *, schema: IUserCreateSchema, plain_password: str, tenant: TenantDB) -> UserDB:
         return self._service.create(
             schema=schema,
             plain_password=plain_password,
             role="tenant-superuser",
-            tenant=self._tenant,
+            tenant=tenant,
         )
 
-    def update(self, username: str, schema: ISchema) -> UserDB:
-        user_db = self.get_by_username(username)
+    def update(self, username: str, schema: ISchema, tenant: TenantDB) -> UserDB:
+        user_db = self.get_by_username(username, tenant)
         return self._service.update(user_db, schema)
 
-    def activate(self, username: str) -> UserDB:
-        user_db = self.get_by_username(username)
+    def activate(self, username: str, tenant: TenantDB) -> UserDB:
+        user_db = self.get_by_username(username, tenant)
         return self._service.activate(user_db)
 
-    def deactivate(self, username: str) -> UserDB:
-        user_db = self.get_by_username(username)
+    def deactivate(self, username: str, tenant: TenantDB) -> UserDB:
+        user_db = self.get_by_username(username, tenant)
         return self._service.deactivate(user_db)
 
-    def delete(self, username: str) -> None:
-        user_db = self.get_by_username(username)
+    def delete(self, username: str, tenant: TenantDB) -> None:
+        user_db = self.get_by_username(username, tenant)
         return self._service.delete(user_db)
 
-    def reset_password(self, username: str, plain_password: str) -> UserDB:
-        user_db = self.get_by_username(username)
+    def reset_password(self, username: str, plain_password: str, tenant: TenantDB) -> UserDB:
+        user_db = self.get_by_username(username, tenant)
         return self._service.reset_password(user_db, plain_password)
-
-    def _get_usernames_query(self, usernames: list[str]) -> Query[UserDB]:
-        query = self._db.query(UserDB).filter(
-            UserDB.username.in_(usernames), UserDB.is_tenant_superuser
-        )
-
-        if not query.all():
-            raise BulkNotFoundError(object_name="user", fieldname="username", field_value=usernames)
-
-        return query

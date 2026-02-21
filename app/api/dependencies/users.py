@@ -1,9 +1,23 @@
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import Query
+from fastapi import Depends, Path, Query
+from pydantic import AfterValidator
 
-from app.schemas.user import UserFilterSchema
+from app.schemas.user import UserFilterSchema, validate_username
+
+
+def get_username(
+    username: Annotated[
+        str,
+        Path(min_length=4, max_length=255, examples=["abdullah_altatan"]),
+        AfterValidator(validate_username),
+    ],
+) -> str:
+    return username
+
+
+UsernameFromPathDI = Annotated[str, Depends(get_username)]
 
 
 def get_user_filter_schema(  # noqa: PLR0913

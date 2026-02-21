@@ -3,11 +3,10 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Body, Depends, Form, Query, status
 
 from app.api.dependencies.auth import RequireAnySuperuserDI
-from app.api.dependencies.db import SessionDI
-from app.api.dependencies.hash import PWDHasherFnDI
 from app.api.dependencies.pagination import Pagination, get_pagination
-from app.api.dependencies.tenant import ActiveTenantDI
-from app.api.dependencies.users import get_user_filter_schema
+from app.api.dependencies.tenant import TenantDBFromTokenDI
+from app.api.dependencies.users import UsernameFromPathDI, get_user_filter_schema
+from app.api.dependencies.utils import PWDHasherFnDI, SessionDI
 from app.api.response import ArrayResponse, ObjectResponse, PageResponse
 from app.schemas.user import (
     ResetPasswordSchema,
@@ -23,7 +22,7 @@ router = APIRouter()
 
 
 def get_user_service(
-    db: SessionDI, tenant: ActiveTenantDI, hasher_fn: PWDHasherFnDI
+    db: SessionDI, tenant: TenantDBFromTokenDI, hasher_fn: PWDHasherFnDI
 ) -> UserService:
     return UserService(db, GenericUserService(db, hasher_fn), tenant)
 
@@ -71,7 +70,9 @@ def create(
     response_model=ObjectResponse[UserReadSchema],
     dependencies=[RequireAnySuperuserDI],
 )
-def get_by_username(service: Annotated[UserService, Depends(get_user_service)], username: str):
+def get_by_username(
+    service: Annotated[UserService, Depends(get_user_service)], username: UsernameFromPathDI
+):
     return ObjectResponse(item=service.get_by_username(username))
 
 
@@ -83,7 +84,7 @@ def get_by_username(service: Annotated[UserService, Depends(get_user_service)], 
 )
 def update(
     service: Annotated[UserService, Depends(get_user_service)],
-    username: str,
+    username: UsernameFromPathDI,
     update_schema: UserUpdateSchema,
 ):
     return ObjectResponse(item=service.update(username, update_schema))
@@ -95,7 +96,9 @@ def update(
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def activate(service: Annotated[UserService, Depends(get_user_service)], username: str):
+def activate(
+    service: Annotated[UserService, Depends(get_user_service)], username: UsernameFromPathDI
+):
     return ObjectResponse(item=service.activate(username))
 
 
@@ -105,7 +108,9 @@ def activate(service: Annotated[UserService, Depends(get_user_service)], usernam
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[RequireAnySuperuserDI],
 )
-def deactivate(service: Annotated[UserService, Depends(get_user_service)], username: str):
+def deactivate(
+    service: Annotated[UserService, Depends(get_user_service)], username: UsernameFromPathDI
+):
     return ObjectResponse(item=service.deactivate(username))
 
 
@@ -117,7 +122,7 @@ def deactivate(service: Annotated[UserService, Depends(get_user_service)], usern
 )
 def reset_password(
     service: Annotated[UserService, Depends(get_user_service)],
-    username: str,
+    username: UsernameFromPathDI,
     schema: Annotated[ResetPasswordSchema, Form()],
 ):
     return ObjectResponse(
@@ -128,7 +133,9 @@ def reset_password(
 @router.delete(
     "/{username}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[RequireAnySuperuserDI]
 )
-def delete(service: Annotated[UserService, Depends(get_user_service)], username: str):
+def delete(
+    service: Annotated[UserService, Depends(get_user_service)], username: UsernameFromPathDI
+):
     service.delete(username)
 
 
