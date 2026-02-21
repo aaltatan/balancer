@@ -92,11 +92,7 @@ class UserService:
     def get_by_username(self, username: str) -> UserDB:
         user = (
             self._db.query(UserDB)
-            .filter(
-                UserDB.username == username,
-                UserDB.tenant == self._tenant,
-                UserDB.is_tenant_user,
-            )
+            .filter(UserDB.username == username, UserDB.tenant == self._tenant)
             .first()
         )
 
