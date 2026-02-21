@@ -15,7 +15,7 @@ class UserAlreadyExistsError(Exception):
 
 class NotFoundError(Exception):
     def __init__(self, object_name: str, fieldname: str, field_value: Any, *args: object) -> None:
-        message = f"{object_name.title()} with {fieldname} '{field_value} not found."
+        message = f"{object_name.title()} with {fieldname} '{field_value}' not found."
         super().__init__(message, *args)
 
 
