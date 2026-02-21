@@ -8,8 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
 
-from .config import ConfigDI
-from .db import SessionDI
+from .utils import ConfigDI, SessionDI
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 

@@ -4,8 +4,8 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies.auth import RequireSuperuserDI
-from app.api.dependencies.db import SessionDI
 from app.api.dependencies.pagination import Pagination, get_pagination
+from app.api.dependencies.utils import SessionDI
 from app.api.response import ObjectResponse, PageResponse
 from app.schemas.tenant import (
     TenantCreateSchema,

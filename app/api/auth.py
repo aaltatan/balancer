@@ -5,9 +5,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.dependencies.auth import ActiveUserDI
-from app.api.dependencies.config import ConfigDI
-from app.api.dependencies.db import SessionDI
-from app.api.dependencies.hash import PWDHasherFnDI, PWDVerifierFnDI
+from app.api.dependencies.utils import ConfigDI, PWDHasherFnDI, PWDVerifierFnDI, SessionDI
 from app.constants import LOGIN_USERNAME_REGEX
 from app.db.tenant import TenantDB
 from app.db.user import UserDB
