@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from app.db.tenant import TenantDB
+from balancer.domain.models.tenant import TenantDB
 from sqlalchemy.orm import Session
 
 

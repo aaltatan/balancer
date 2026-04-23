@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-from app.db.user import UserDB
-from app.exceptions import AlreadyExistsError
-from app.services.generic_user import GenericUserService
-from app.services.superuser import SuperuserService
+from balancer.domain.exceptions import AlreadyExistsError
+from balancer.domain.models.user import UserDB
+from balancer.domain.services.generic_user import GenericUserService
+from balancer.domain.services.superuser import SuperuserService
 from sqlalchemy.orm import Session
 
 

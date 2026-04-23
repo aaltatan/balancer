@@ -1,0 +1,51 @@
+from sqlalchemy.orm import Session
+
+from balancer.domain.exceptions import NotFoundError
+from balancer.domain.models import UserDB
+
+from .generic_user import GenericUserService, UserCreate, UserUpdate
+
+
+class SuperuserService:
+    def __init__(self, session: Session, service: GenericUserService) -> None:
+        self._db = session
+        self._service = service
+
+    def get_all(self) -> list[UserDB]:
+        return self._db.query(UserDB).filter(UserDB.role == "superuser").all()
+
+    def create(self, *, schema: UserCreate, plain_password: str) -> UserDB:
+        return self._service.create(schema=schema, plain_password=plain_password, role="superuser")
+
+    def update(self, username: str, schema: UserUpdate) -> UserDB:
+        superuser = self._get_superuser(username)
+        return self._service.update(superuser, schema)
+
+    def activate(self, username: str) -> UserDB:
+        superuser = self._get_superuser(username)
+        return self._service.activate(superuser)
+
+    def deactivate(self, username: str) -> UserDB:
+        superuser = self._get_superuser(username)
+        return self._service.deactivate(superuser)
+
+    def delete(self, username: str) -> None:
+        superuser = self._get_superuser(username)
+        return self._service.delete(superuser)
+
+    def reset_password(self, username: str, plain_password: str) -> UserDB:
+        superuser = self._get_superuser(username)
+        return self._service.reset_password(superuser, plain_password)
+
+    def _get_superuser(self, username: str) -> UserDB:
+        user = (
+            self._db.query(UserDB)
+            .filter(UserDB.role == "superuser", UserDB.username == username)
+            .first()
+        )
+
+        if not user:
+            message = f"User with username '{username}' not found."
+            raise NotFoundError(message)
+
+        return user

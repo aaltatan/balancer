@@ -2,8 +2,8 @@ import datetime
 from collections.abc import Callable
 
 import pytest
-from app.db.tenant import TenantDB
-from app.db.user import UserDB
+from balancer.domain.models.tenant import TenantDB
+from balancer.domain.models.user import UserDB
 from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session

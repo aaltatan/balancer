@@ -2,9 +2,9 @@ from collections.abc import Callable, Generator
 from typing import Any
 
 import pytest
-from app.api.dependencies.hash import get_hasher_fn, get_verifier_fn
-from app.db import Base, get_db
-from app.main import app
+from balancer.domain.models import Base, get_db
+from balancer.entrypoint.api.dependencies.hash import get_hasher_fn, get_verifier_fn
+from balancer.entrypoint.api.main import app
 from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import Session, sessionmaker

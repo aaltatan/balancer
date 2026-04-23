@@ -1,0 +1,30 @@
+from typing import Annotated
+
+from fastapi import Depends, HTTPException, Path, status
+
+from balancer.domain.models.tenant import TenantDB
+
+from .db import SessionDI
+
+
+def _get_active_tenant(db: SessionDI, tenant_code: Annotated[str, Path()]) -> TenantDB:
+    tenant = db.query(TenantDB).filter(TenantDB.code == tenant_code).first()
+
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not tenant.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tenant is not active",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return tenant
+
+
+ActiveTenantDI = Annotated[TenantDB, Depends(_get_active_tenant)]
